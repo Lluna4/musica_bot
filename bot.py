@@ -65,7 +65,7 @@ async def on_message(message):
                     time.sleep(1)
                     if vc.is_playing() == False:
                         conectado = False
-                        os.remove("1.mp4")
+                        os.remove(f"{num}.mp4")
                         
                         
                         ydl_opts = {}

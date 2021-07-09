@@ -77,7 +77,7 @@ async def on_message(message):
                             print(files)
                             if ".mp4" in files:
                                 os.rename(files, f"{num}.mp4")
-                                vc.play(discord.FFmpegPCMAudio(executable=r"C:\Users\carly\Downloads/ffmpeg-4.4-full_build/ffmpeg-4.4-full_build/bin/ffmpeg.exe", source=f"{num}.mp4"))
+                                vc.play(discord.FFmpegPCMAudio(executable=r"/ffmpeg_4.3.2.orig.tar.xz", source=f"{num}.mp4"))
                                 del canciones[0]
 
                     else:

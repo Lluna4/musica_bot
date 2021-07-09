@@ -12,6 +12,7 @@ import youtube_dl
 
 cancion = False
 conectado = False
+canciones = []
 
 
 num = 0
@@ -30,12 +31,18 @@ async def on_message(message):
     global cancion
     global conectado
     global num
+    global canciones
     if message.content.startswith("!p"):
         link = message.content[3: ]
         print(link)
         num += 1
+        canciones.append(link)
+        print(canciones[0])
         if cancion == True:
             await message.channel.send("Se ha puesto en cola")
+            print(canciones)
+           
+            
         else:
             ydl_opts = {}
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
@@ -53,20 +60,35 @@ async def on_message(message):
                 vc = await canal.connect()
                 conectado = True
             
-            def con(vc, conectado):
+            def con(vc, conectado, canciones):
                 while True:
                     time.sleep(1)
                     if vc.is_playing() == False:
                         conectado = False
+                        os.remove("1.mp4")
                         
+                        
+                        ydl_opts = {}
+                        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                            
+                            ydl.download([canciones[0]])
+                            
+                        for files in listdir(path="C:/Users/carly/Downloads/bot_musica_discord"):
+                            print(files)
+                            if ".mp4" in files:
+                                os.rename(files, f"{num}.mp4")
+                                vc.play(discord.FFmpegPCMAudio(executable=r"C:\Users\carly\Downloads/ffmpeg-4.4-full_build/ffmpeg-4.4-full_build/bin/ffmpeg.exe", source=f"{num}.mp4"))
+                                del canciones[0]
+
                     else:
                         conectado = True
             
-            t1 = threading.Thread(target=con, args=(vc, conectado))
+            t1 = threading.Thread(target=con, args=(vc, conectado, canciones))
             t1.start()
             
             
             vc.play(discord.FFmpegPCMAudio(executable=r"C:\Users\carly\Downloads/ffmpeg-4.4-full_build/ffmpeg-4.4-full_build/bin/ffmpeg.exe", source=f"{num}.mp4"))
+            del canciones[0]
             
 
 

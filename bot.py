@@ -32,6 +32,7 @@ async def on_ready():
     print("uff")
     await bot.change_presence(activity=discord.Game(name="Ser musico"))
 
+
 @bot.event
 async def on_message(message):
     global cancion
@@ -70,7 +71,7 @@ async def on_message(message):
             ydl_opts = {}
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([link])
-            for files in listdir(path="~/git"):
+            for files in listdir(path="/git"):
                 print(files)
                 
                 
@@ -87,7 +88,7 @@ async def on_message(message):
             ydl_opts = {}
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([link])
-            for files in listdir(path="~/git"):
+            for files in listdir(path="/git"):
                 print(files)
                 
                 

@@ -71,7 +71,7 @@ async def on_message(message):
             ydl_opts = {}
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([link])
-            for files in listdir(path="/git"):
+            for files in listdir(path="/root/git/musica_bot"):
                 print(files)
                 
                 
@@ -88,7 +88,7 @@ async def on_message(message):
             ydl_opts = {}
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([link])
-            for files in listdir(path="/git"):
+            for files in listdir(path="/root/git/musica_bot"):
                 print(files)
                 
                 
@@ -117,7 +117,7 @@ async def on_message(message):
                                 ydl.download([canciones[0]])
 
                             
-                            for files in listdir(path="~/git"):
+                            for files in listdir(path="/root/git/musica_bot"):
                                 print(files)
                                 if ".mp4" in files:
                                     mensaje = discord.Embed(title= f"{t.title}", description= f"Se esta reproduciendo {t.title}", url=link)
@@ -154,7 +154,7 @@ async def on_message(message):
             
             ydl.download([canciones[0]])
             
-        for files in listdir(path="~/git"):
+        for files in listdir(path="/root/git/musica_bot"):
             print(files)
             if ".mp4" in files:
                 mensaje = discord.Embed(title= f"{t.title}", description= f"Se esta reproduciendo {t.title}", url=link)

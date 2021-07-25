@@ -1,4 +1,3 @@
-  
 from __future__ import unicode_literals
 import discord
 from discord.utils import get
@@ -14,10 +13,11 @@ import youtube_dl
 from pytube import Search
 
 
-
+exe = "/usr/bin/ffmpeg"
 cancion = False
 conectado = False
 canciones = []
+num = 0
 
 vc = ""
 
@@ -32,6 +32,7 @@ async def on_ready():
     print("uff")
     await bot.change_presence(activity=discord.Game(name="Ser musico"))
 
+
 @bot.event
 async def on_message(message):
     global cancion
@@ -39,12 +40,13 @@ async def on_message(message):
     global num
     global canciones
     global vc
+    global num
     if message.content.startswith(".p"):
         link = message.content[3: ]
         print(link)
         if "https" in link:
            t = pytube.YouTube(link)
-           img = t.thumbnail_url
+           #img = t.thumbnail_url
         
         else:
 
@@ -54,29 +56,39 @@ async def on_message(message):
             t = s.results[0]
             print(type(t))
             print(str(t)[41:-2])
-            img = t.thumbnail_url
+            #img = t.thumbnail_url
             link = f"https://youtu.be/{str(t)[41:-1]}"
-            print(img)
+            #print(img)
             
         canciones.append(link)
         print(canciones[0])
         if cancion == True:
-            mensaje1 = discord.Embed(title= f"{t.title}", description= f"Se ha puesto en cola {t.title}, esta en el puesto {len(canciones)}", url=link)
-            mensaje1.set_thumbnail(url=img)
-            mensaje1.set_author(name= message.author.name, icon_url=message.author.avatar_url)
-            await message.channel.send(embed= mensaje1)
+            #mensaje1 = discord.Embed(title= f"{t.title}", description= f"Se ha puesto en cola {t.title}, esta en el puesto {len(canciones)}", url=link)
+            #mensaje1.set_thumbnail(url=img)
+            #mensaje1.set_author(name= message.author.name, icon_url=message.author.avatar_url)
+            #await message.channel.send(embed= mensaje1)
+            num += 1
+            ydl_opts = {'format':'137'}
+            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([link])
+            for files in listdir(path="/root/git/musica_bot"):
+                print(files)
+                
+                
+                if ".mkv" in files:
+                    os.rename(files, f"{num}.mkv")
 
             print(canciones)
            
             
         else:
             mensaje = discord.Embed(title= f"{t.title}", description= f"Se esta reproduciendo {t.title}", url=link)
-            mensaje.set_thumbnail(url=img)
+            #mensaje.set_thumbnail(url=img)
             mensaje.set_author(name= message.author.name, icon_url=message.author.avatar_url)
             ydl_opts = {}
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([link])
-            for files in listdir(path="C:/Users/carly/Downloads/bot_musica_discord"):
+            for files in listdir(path="/root/git/musica_bot"):
                 print(files)
                 
                 
@@ -99,20 +111,20 @@ async def on_message(message):
                             os.remove(f"{num}.mkv")
                         
                         
-                            ydl_opts = {}
+                            ydl_opts = {'format':'137'}
                             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                                 
                                 ydl.download([canciones[0]])
 
                             
-                            for files in listdir(path="C:/Users/carly/Downloads/bot_musica_discord"):
+                            for files in listdir(path="/root/git/musica_bot"):
                                 print(files)
                                 if ".mkv" in files:
                                     mensaje = discord.Embed(title= f"{t.title}", description= f"Se esta reproduciendo {t.title}", url=link)
-                                    mensaje.set_thumbnail(url=img)
+                                    #mensaje.set_thumbnail(url=img)
                                     mensaje.set_author(name= message.author.name, icon_url=message.author.avatar_url)
                                     os.rename(files, f"{num}.mkv")
-                                    vc.play(discord.FFmpegPCMAudio(executable=r"C:\Users\carly\Downloads/ffmpeg-4.4-full_build/ffmpeg-4.4-full_build/bin/ffmpeg.exe", source=f"0.mkv"))
+                                    vc.play(discord.FFmpegPCMAudio(executable=exe, source=f"0.mkv"))
                                     del canciones[0]
                                     num = 0
                         
@@ -127,7 +139,7 @@ async def on_message(message):
             t1.start()
             
             
-            vc.play(discord.FFmpegPCMAudio(executable=r"C:\Users\carly\Downloads/ffmpeg-4.4-full_build/ffmpeg-4.4-full_build/bin/ffmpeg.exe", source=f"0.mkv"))
+            vc.play(discord.FFmpegPCMAudio(executable=exe, source=f"0.mkv"))
             await message.channel.send(embed=mensaje)
             del canciones[0]
             num = 0
@@ -137,20 +149,20 @@ async def on_message(message):
         os.remove(f"{num}.mkv")
     
     
-        ydl_opts = {}
+        ydl_opts = {'format':'137'}
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             
             ydl.download([canciones[0]])
             
-        for files in listdir(path="C:/Users/carly/Downloads/bot_musica_discord"):
+        for files in listdir(path="/root/git/musica_bot"):
             print(files)
             if ".mkv" in files:
                 mensaje = discord.Embed(title= f"{t.title}", description= f"Se esta reproduciendo {t.title}", url=link)
-                mensaje.set_thumbnail(url=img)
+                #mensaje.set_thumbnail(url=img)
                 mensaje.set_author(name= message.author.name, icon_url=message.author.avatar_url)
                 await message.channel.send(embed=mensaje)
                 os.rename(files, f"{num}.mkv")
-                vc.play(discord.FFmpegPCMAudio(executable=r"C:\Users\carly\Downloads/ffmpeg-4.4-full_build/ffmpeg-4.4-full_build/bin/ffmpeg.exe", source=f"0.mkv"))
+                vc.play(discord.FFmpegPCMAudio(executable=exe, source=f"0.mkv"))
                 del canciones[0]
                 num = 0
         

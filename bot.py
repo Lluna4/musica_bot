@@ -68,7 +68,7 @@ async def on_message(message):
             #mensaje1.set_author(name= message.author.name, icon_url=message.author.avatar_url)
             #await message.channel.send(embed= mensaje1)
             num += 1
-            ydl_opts = {}
+            ydl_opts = {'format':'137'}
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([link])
             for files in listdir(path="/root/git/musica_bot"):
@@ -111,7 +111,7 @@ async def on_message(message):
                             os.remove(f"{num}.mp4")
                         
                         
-                            ydl_opts = {}
+                            ydl_opts = {'format':'137'}
                             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                                 
                                 ydl.download([canciones[0]])
@@ -149,7 +149,7 @@ async def on_message(message):
         os.remove(f"{num}.mp4")
     
     
-        ydl_opts = {}
+        ydl_opts = {'format':'137'}
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             
             ydl.download([canciones[0]])

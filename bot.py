@@ -68,7 +68,7 @@ async def on_message(message):
             #mensaje1.set_author(name= message.author.name, icon_url=message.author.avatar_url)
             #await message.channel.send(embed= mensaje1)
             num += 1
-            ydl_opts = {"postprocessors": [{'key': 'FFmpegVideoConvertor', 'preferedformat': 'mp4'}]}
+            ydl_opts = {}
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([link])
             for files in listdir(path="/root/git/musica_bot"):
@@ -85,9 +85,9 @@ async def on_message(message):
             mensaje = discord.Embed(title= f"{t.title}", description= f"Se esta reproduciendo {t.title}", url=link)
             #mensaje.set_thumbnail(url=img)
             mensaje.set_author(name= message.author.name, icon_url=message.author.avatar_url)
-            ydl_opts = {"postprocessors": [{'key': 'FFmpegVideoConvertor', 'preferedformat': 'mp4'}]}
+            ydl_opts = {}
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([link])
+                song_info = ydl.extract_info(link, download=False)
             for files in listdir(path="/root/git/musica_bot"):
                 print(files)
                 
@@ -111,7 +111,7 @@ async def on_message(message):
                             os.remove(f"{num}.mp4")
                         
                         
-                            ydl_opts = {"postprocessors": [{'key': 'FFmpegVideoConvertor', 'preferedformat': 'mp4'}]}
+                            ydl_opts = {'format':'137'}
                             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                                 
                                 ydl.download([canciones[0]])
@@ -124,7 +124,7 @@ async def on_message(message):
                                     #mensaje.set_thumbnail(url=img)
                                     mensaje.set_author(name= message.author.name, icon_url=message.author.avatar_url)
                                     os.rename(files, f"{num}.mp4")
-                                    vc.play(discord.FFmpegPCMAudio(executable=exe, source=f"0.mp4"))
+                                    vc.play(discord.FFmpegPCMAudio(executable=exe, source=song_info["formats"][0]["url"]))
                                     del canciones[0]
                                     num = 0
                         
@@ -149,7 +149,7 @@ async def on_message(message):
         os.remove(f"{num}.mp4")
     
     
-        ydl_opts = {"postprocessors": [{'key': 'FFmpegVideoConvertor', 'preferedformat': 'mp4'}]}
+        ydl_opts = {}
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             
             ydl.download([canciones[0]])
@@ -162,7 +162,7 @@ async def on_message(message):
                 mensaje.set_author(name= message.author.name, icon_url=message.author.avatar_url)
                 await message.channel.send(embed=mensaje)
                 os.rename(files, f"{num}.mp4")
-                vc.play(discord.FFmpegPCMAudio(executable=exe, source=f"0.mp4"))
+                vc.play(discord.FFmpegPCMAudio(executable=exe, source=song_info["formats"][0]["url"]))
                 del canciones[0]
                 num = 0
         

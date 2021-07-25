@@ -1,2 +1,5 @@
 discord.py
 PyNaCl
+pytube
+youtube-dl
+pytest

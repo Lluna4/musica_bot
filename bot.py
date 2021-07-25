@@ -108,7 +108,7 @@ async def on_message(message):
 
                         try:
                             conectado = False
-                            os.remove(f"{num}.mp4")
+                            #os.remove(f"{num}.mp4")
                         
                         
                             ydl_opts = {'format':'137'}
@@ -144,7 +144,7 @@ async def on_message(message):
     
     if message.content == ".skip":
         vc.stop()
-        os.remove(f"{num}.mp4")
+        #os.remove(f"{num}.mp4")
     
     
         ydl_opts = {}

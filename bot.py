@@ -93,7 +93,7 @@ async def on_message(message):
                 vc = await canal.connect()
                 conectado = True
             
-            def con(vc, conectado, canciones, num, pausado):
+            async def con(vc, conectado, canciones, num, pausado):
                 while True:
                     time.sleep(1)
                     if vc.is_playing() == False and pausado == False:
@@ -114,6 +114,7 @@ async def on_message(message):
                                 mensaje = discord.Embed(title= f"{t.title}", description= f"Se esta reproduciendo {t.title}", url=link)
                                 #mensaje.set_thumbnail(url=img)
                                 mensaje.set_author(name= message.author.name, icon_url=message.author.avatar_url)
+                                await message.channel.send(embed=mensaje)
                                 OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
                                 vc.play(discord.FFmpegPCMAudio(executable=exe, source=song_info["formats"][0]["url"], **OP ))
                                 del canciones[0]
@@ -152,6 +153,7 @@ async def on_message(message):
             mensaje = discord.Embed(title= f"{t.title}", description= f"Se esta reproduciendo {t.title}", url=link)
             #mensaje.set_thumbnail(url=img)
             mensaje.set_author(name= message.author.name, icon_url=message.author.avatar_url)
+            await message.channel.send(embed=mensaje)
             OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5'}
             vc.play(discord.FFmpegPCMAudio(executable=exe, source=song_info["formats"][0]["url"], **OP))
             del canciones[0]

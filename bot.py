@@ -13,7 +13,7 @@ import youtube_dl
 from pytube import Search
 
 
-exe = "/usr/share/man/man1/ffmpeg-all.1.gz"
+exe = "/usr/bin/ffmpeg"
 cancion = False
 conectado = False
 canciones = []

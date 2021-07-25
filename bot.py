@@ -71,12 +71,12 @@ async def on_message(message):
             ydl_opts = {}
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([link])
-            for files in listdir(path="/root/git/musica_bot"):
+            """""for files in listdir(path="/root/git/musica_bot"):
                 print(files)
                 
                 
                 if ".mp4" in files:
-                    os.rename(files, f"{num}.mp4")
+                    os.rename(files, f"{num}.mp4")"""
 
             print(canciones)
            
@@ -88,12 +88,12 @@ async def on_message(message):
             ydl_opts = {}
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                 song_info = ydl.extract_info(link, download=False)
-            for files in listdir(path="/root/git/musica_bot"):
+            """for files in listdir(path="/root/git/musica_bot"):
                 print(files)
                 
                 
                 if ".mp4" in files:
-                    os.rename(files, f"{num}.mp4")
+                    os.rename(files, f"{num}.mp4")"""
             
             cancion = True
             canal = message.author.voice.channel
@@ -117,17 +117,15 @@ async def on_message(message):
                                 ydl.download([canciones[0]])
 
                             
-                            for files in listdir(path="/root/git/musica_bot"):
-                                print(files)
-                                if ".mp4" in files:
-                                    mensaje = discord.Embed(title= f"{t.title}", description= f"Se esta reproduciendo {t.title}", url=link)
-                                    #mensaje.set_thumbnail(url=img)
-                                    mensaje.set_author(name= message.author.name, icon_url=message.author.avatar_url)
-                                    os.rename(files, f"{num}.mp4")
-                                    vc.play(discord.FFmpegPCMAudio(executable=exe, source=song_info["formats"][0]["url"]))
-                                    del canciones[0]
-                                    num = 0
-                        
+
+                                mensaje = discord.Embed(title= f"{t.title}", description= f"Se esta reproduciendo {t.title}", url=link)
+                                #mensaje.set_thumbnail(url=img)
+                                mensaje.set_author(name= message.author.name, icon_url=message.author.avatar_url)
+                                
+                                vc.play(discord.FFmpegPCMAudio(executable=exe, source=song_info["formats"][0]["url"]))
+                                del canciones[0]
+                                num = 0
+                            
                         except Exception:
                             pass
                         
@@ -153,18 +151,16 @@ async def on_message(message):
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             
             ydl.download([canciones[0]])
+
+        
+
+            mensaje = discord.Embed(title= f"{t.title}", description= f"Se esta reproduciendo {t.title}", url=link)
+            #mensaje.set_thumbnail(url=img)
+            mensaje.set_author(name= message.author.name, icon_url=message.author.avatar_url)
             
-        for files in listdir(path="/root/git/musica_bot"):
-            print(files)
-            if ".mp4" in files:
-                mensaje = discord.Embed(title= f"{t.title}", description= f"Se esta reproduciendo {t.title}", url=link)
-                #mensaje.set_thumbnail(url=img)
-                mensaje.set_author(name= message.author.name, icon_url=message.author.avatar_url)
-                await message.channel.send(embed=mensaje)
-                os.rename(files, f"{num}.mp4")
-                vc.play(discord.FFmpegPCMAudio(executable=exe, source=song_info["formats"][0]["url"]))
-                del canciones[0]
-                num = 0
+            vc.play(discord.FFmpegPCMAudio(executable=exe, source=song_info["formats"][0]["url"]))
+            del canciones[0]
+            num = 0
         
     if message.content == ".calla":
         vc.pause()

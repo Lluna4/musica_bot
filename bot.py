@@ -70,7 +70,7 @@ async def on_message(message):
             num += 1
             ydl_opts = {}
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([link])
+                song_info = ydl.extract_info(link, download=False)
             """""for files in listdir(path="/root/git/musica_bot"):
                 print(files)
                 
@@ -114,7 +114,7 @@ async def on_message(message):
                             ydl_opts = {'format':'137'}
                             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                                 
-                                ydl.download([canciones[0]])
+                                song_info = ydl.extract_info(link, download=False)
 
                             
 
@@ -137,7 +137,7 @@ async def on_message(message):
             t1.start()
             
             
-            vc.play(discord.FFmpegPCMAudio(executable=exe, source=f"0.mp4"))
+            vc.play(discord.FFmpegPCMAudio(executable=exe, source=song_info["formats"][0]["url"]))
             await message.channel.send(embed=mensaje)
             del canciones[0]
             num = 0

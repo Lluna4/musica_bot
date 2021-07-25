@@ -18,6 +18,7 @@ cancion = False
 conectado = False
 canciones = []
 num = 0
+pausado = False
 
 vc = ""
 
@@ -41,6 +42,7 @@ async def on_message(message):
     global canciones
     global vc
     global num
+    global pausado
     if message.content.startswith(".p"):
         link = message.content[3: ]
         print(link)
@@ -63,20 +65,15 @@ async def on_message(message):
         canciones.append(link)
         print(canciones[0])
         if cancion == True:
-            #mensaje1 = discord.Embed(title= f"{t.title}", description= f"Se ha puesto en cola {t.title}, esta en el puesto {len(canciones)}", url=link)
+            mensaje1 = discord.Embed(title= f"{t.title}", description= f"Se ha puesto en cola {t.title}, esta en el puesto {len(canciones)}", url=link)
             #mensaje1.set_thumbnail(url=img)
             #mensaje1.set_author(name= message.author.name, icon_url=message.author.avatar_url)
-            #await message.channel.send(embed= mensaje1)
-            num += 1
+            await message.channel.send(embed= mensaje1)
+            
             ydl_opts = {}
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                song_info = ydl.extract_info(link, download=False)
-            """""for files in listdir(path="/root/git/musica_bot"):
-                print(files)
-                
-                
-                if ".mp4" in files:
-                    os.rename(files, f"{num}.mp4")"""
+                song_info = ydl.extract_info(canciones[0], download=False)
+
 
             print(canciones)
            
@@ -87,13 +84,8 @@ async def on_message(message):
             mensaje.set_author(name= message.author.name, icon_url=message.author.avatar_url)
             ydl_opts = {}
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                song_info = ydl.extract_info(link, download=False)
-            """for files in listdir(path="/root/git/musica_bot"):
-                print(files)
-                
-                
-                if ".mp4" in files:
-                    os.rename(files, f"{num}.mp4")"""
+                song_info = ydl.extract_info(canciones[0], download=False)
+ 
             
             cancion = True
             canal = message.author.voice.channel
@@ -101,28 +93,29 @@ async def on_message(message):
                 vc = await canal.connect()
                 conectado = True
             
-            def con(vc, conectado, canciones, num):
+            def con(vc, conectado, canciones, num, pausado):
                 while True:
                     time.sleep(1)
-                    if vc.is_playing() == False:
+                    if vc.is_playing() == False and pausado == False:
+                        print(pausado)
 
                         try:
                             conectado = False
                             #os.remove(f"{num}.mp4")
                         
                         
-                            ydl_opts = {'format':'137'}
+                            ydl_opts = {}
                             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                                 
-                                song_info = ydl.extract_info(link, download=False)
+                                song_info = ydl.extract_info(canciones[0], download=False)
 
                             
 
                                 mensaje = discord.Embed(title= f"{t.title}", description= f"Se esta reproduciendo {t.title}", url=link)
                                 #mensaje.set_thumbnail(url=img)
                                 mensaje.set_author(name= message.author.name, icon_url=message.author.avatar_url)
-                                
-                                vc.play(discord.FFmpegPCMAudio(executable=exe, source=song_info["formats"][0]["url"]))
+                                OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
+                                vc.play(discord.FFmpegPCMAudio(executable=exe, source=song_info["formats"][0]["url"], **OP ))
                                 del canciones[0]
                                 num = 0
                             
@@ -133,11 +126,12 @@ async def on_message(message):
                     else:
                         conectado = True
             
-            t1 = threading.Thread(target=con, args=(vc, conectado, canciones, num))
+            t1 = threading.Thread(target=con, args=(vc, conectado, canciones, num, pausado))
             t1.start()
             
+            OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
+            vc.play(discord.FFmpegPCMAudio(executable=exe, source=song_info["formats"][0]["url"], **OP))
             
-            vc.play(discord.FFmpegPCMAudio(executable=exe, source=song_info["formats"][0]["url"]))
             await message.channel.send(embed=mensaje)
             del canciones[0]
             num = 0
@@ -150,24 +144,27 @@ async def on_message(message):
         ydl_opts = {}
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             
-            ydl.download([canciones[0]])
+            song_info = ydl.extract_info(canciones[0], download=False)
+            t = pytube.YouTube(canciones[0])
 
         
 
             mensaje = discord.Embed(title= f"{t.title}", description= f"Se esta reproduciendo {t.title}", url=link)
             #mensaje.set_thumbnail(url=img)
             mensaje.set_author(name= message.author.name, icon_url=message.author.avatar_url)
-            
-            vc.play(discord.FFmpegPCMAudio(executable=exe, source=song_info["formats"][0]["url"]))
+            OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5'}
+            vc.play(discord.FFmpegPCMAudio(executable=exe, source=song_info["formats"][0]["url"], **OP))
             del canciones[0]
             num = 0
         
     if message.content == ".calla":
         vc.pause()
+        pausado = True
         await message.channel.send("Vale bro :(")
     
     if message.content == ".continua":
         vc.resume()
+        pausado = False
         await message.channel.send("Procedo a continuar 🎶")
         
 

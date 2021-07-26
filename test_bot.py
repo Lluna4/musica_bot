@@ -8,5 +8,5 @@ import pytest
     ]
 )
 def test_con(message):
-    assert on_message(message) == expected1, expected2, expected3, expected4
+    assert on_message(message) == (expected1, expected2, expected3, expected4)
 

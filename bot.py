@@ -126,6 +126,7 @@ async def on_message(message):
 
                     else:
                         conectado = True
+                    return conectado, canciones, num, pausado
             
             t1 = threading.Thread(target=con, args=(vc, conectado, canciones, num, pausado))
             t1.start()

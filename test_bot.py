@@ -1,4 +1,4 @@
-from botwin import con
+from bot import con
 
 
 def test_con():

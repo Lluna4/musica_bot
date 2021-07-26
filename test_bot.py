@@ -1,5 +1,12 @@
-from bot import con
+from bot import on_message
+import pytest
 
 
-def test_con():
-    assert con("", True, [1,0], 0, True) == (True, [0], 0, True)
+@pytest.mark.parametrize(
+    "message, expected1, expected2, expected3, expected4", [
+        (".p https://youtu.be/dQw4w9WgXcQ", True, False, 1, [https://youtu.be/dQw4w9WgXcQ])
+    ]
+)
+def test_con(message):
+    assert on_message(message) == expected1, expected2, expected3, expected4
+

@@ -169,6 +169,7 @@ async def on_message(message):
         vc.resume()
         pausado = False
         await message.channel.send("Procedo a continuar 🎶")
+    return conectado, pausado, num, canciones
         
 
             

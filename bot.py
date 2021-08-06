@@ -3,26 +3,24 @@ import discord
 from discord.utils import get
 from discord.ext import commands
 from discord import FFmpegPCMAudio
-import os
-from os import listdir
+
 import threading
 import time
 import pytube
 import youtube_dl
 
+import time
+
 from pytube import Search
 
-
-exe = "/usr/bin/ffmpeg"
-cancion = False
-conectado = False
+exe = r"C:\Users\carly\Downloads/ffmpeg-4.4-full_build/ffmpeg-4.4-full_build/bin/ffmpeg.exe"
 canciones = []
-num = 0
-pausado = False
-
+conectado = False
 vc = ""
 
-num = 0
+puesto = False
+
+
 
 intents = discord.Intents.default()
 intents.members = True  
@@ -36,148 +34,75 @@ async def on_ready():
 
 @bot.event
 async def on_message(message):
-    global cancion
     global conectado
-    global num
-    global canciones
     global vc
-    global num
-    global pausado
+    global puesto
     if message.content.startswith(".p"):
-        link = message.content[3: ]
-        print(link)
+        link = await linkd(message.content)
         if "https" in link:
-           t = pytube.YouTube(link)
-           #img = t.thumbnail_url
-        
+            info = pytube.YouTube(link)
         else:
-
-            s = Search(link)
-            print(s.results)
-            print(type(s.results))
-            t = s.results[0]
-            print(type(t))
-            print(str(t)[41:-2])
-            #img = t.thumbnail_url
-            link = f"https://youtu.be/{str(t)[41:-1]}"
-            #print(img)
-            
-        canciones.append(link)
-        print(canciones[0])
-        if cancion == True:
-            mensaje1 = discord.Embed(title= f"{t.title}", description= f"Se ha puesto en cola {t.title}, esta en el puesto {len(canciones)}", url=link)
-            #mensaje1.set_thumbnail(url=img)
-            #mensaje1.set_author(name= message.author.name, icon_url=message.author.avatar_url)
-            await message.channel.send(embed= mensaje1)
-            
-            ydl_opts = {}
-            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                song_info = ydl.extract_info(canciones[0], download=False)
-
-
-            print(canciones)
-           
-            
-        else:
-            mensaje = discord.Embed(title= f"{t.title}", description= f"Se esta reproduciendo {t.title}", url=link)
-            #mensaje.set_thumbnail(url=img)
-            mensaje.set_author(name= message.author.name, icon_url=message.author.avatar_url)
-            ydl_opts = {}
-            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                song_info = ydl.extract_info(canciones[0], download=False)
- 
-            
-            cancion = True
+            info = await texto_a_link(link)
+        try:
+            canciones.append(link)
             canal = message.author.voice.channel
             if conectado == False:
                 vc = await canal.connect()
                 conectado = True
-            
-            async def con(vc, conectado, canciones, num, pausado):
-                while True:
-                    time.sleep(1)
-                    if vc.is_playing() == False and pausado == False:
-                        print(pausado)
-
-                        try:
-                            conectado = False
-                            #os.remove(f"{num}.mp4")
-                        
-                        
-                            ydl_opts = {}
-                            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                                
-                                song_info = ydl.extract_info(canciones[0], download=False)
-
-                            
-
-                                mensaje = discord.Embed(title= f"{t.title}", description= f"Se esta reproduciendo {t.title}", url=link)
-                                #mensaje.set_thumbnail(url=img)
-                                mensaje.set_author(name= message.author.name, icon_url=message.author.avatar_url)
-                                await message.channel.send(embed=mensaje)
-                                OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-                                vc.play(discord.FFmpegPCMAudio(executable=exe, source=song_info["formats"][0]["url"], **OP ))
-                                del canciones[0]
-                                num = 0
-                            
-                        except Exception:
-                            pass
-                        
-
-                    else:
-                        conectado = True
-            
-            t1 = threading.Thread(target=con, args=(vc, conectado, canciones, num, pausado))
-            t1.start()
-            
+        except Exception:
+            await message.channel.send("No estas conectado a un canal de voz")
+            return
+        
+        if vc.is_playing(): #si hay una cancion reproduciendose lo pone en cola
+           msg = discord.Embed(title= f"{info.title}", description= f"Se ha puesto en cola {info.title}, esta en el puesto {len(canciones)}", url=link)
+           msg.set_thumbnail(url=info.thumbnail_url)
+           msg.set_author(name= message.author.name, icon_url=message.author.avatar_url)
+           await message.channel.send(embed=msg)
+        else: #reproduce la cancion
+            ydl_opts = {}
+            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                song_info = ydl.extract_info(canciones[0], download=False)
+                print(song_info)
             OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
             vc.play(discord.FFmpegPCMAudio(executable=exe, source=song_info["formats"][0]["url"], **OP))
-            
-            await message.channel.send(embed=mensaje)
-            del canciones[0]
-            num = 0
-    
-    if message.content == ".skip":
-        vc.stop()
-        #os.remove(f"{num}.mp4")
-    
-    
-        ydl_opts = {}
-        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-            
-            song_info = ydl.extract_info(canciones[0], download=False)
-            t = pytube.YouTube(canciones[0])
+            if puesto == False:
+                x1 = threading.Thread(target=xd)
+                x1.start()
+                
+
+                puesto = True
 
         
+        
 
-            mensaje = discord.Embed(title= f"{t.title}", description= f"Se esta reproduciendo {t.title}", url=link)
-            #mensaje.set_thumbnail(url=img)
-            mensaje.set_author(name= message.author.name, icon_url=message.author.avatar_url)
-            await message.channel.send(embed=mensaje)
-            OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5'}
+        
+def xd():
+    while True:
+        del canciones[0]
+        if vc.is_playing() == False:
+            ydl_opts = {}
+            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                song_info = ydl.extract_info(canciones[0], download=False)
+                print(song_info)
+            OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
             vc.play(discord.FFmpegPCMAudio(executable=exe, source=song_info["formats"][0]["url"], **OP))
-            del canciones[0]
-            num = 0
-        
-    if message.content == ".calla":
-        vc.pause()
-        pausado = True
-        await message.channel.send("Vale bro :(")
-    
-    if message.content == ".continua":
-        vc.resume()
-        pausado = False
-        await message.channel.send("Procedo a continuar 🎶")
-        
-
-            
+        time.sleep(1)
 
 
 
+async def linkd(message):
+    link = message[3: ]
+    print(link)
+    return link
 
-        
-        
+async def texto_a_link(link):
+    s = Search(link)
+    t = s.results[0]
+ 
+    link = f"https://youtu.be/{str(t)[41:-1]}"
+    canciones.append(link)
+    return pytube.YouTube(link) #para comprobar si una cancion esta puesta, al enviar el mensaje se comprueba, no todo el rato
 
-bot.run("NzkyNzQ3ODQ3NzYxMDAyNTM2.X-iN9w.T2ya5knShiV8yWAQgwR4uJ9BPwU")
 
 
+bot.run("ODYyNzcwMTcwNjI4MTQ1MTUy.YOdLVg.ODImCoESKnuY26vjp7JioyMpUIo")

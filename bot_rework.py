@@ -14,7 +14,7 @@ import time
 
 from pytube import Search
 
-exe = r"C:\Users\carly\Downloads/ffmpeg-4.4-full_build/ffmpeg-4.4-full_build/bin/ffmpeg.exe"
+exe = "/usr/bin/ffmpeg"
 canciones = []
 conectado = False
 vc = ""

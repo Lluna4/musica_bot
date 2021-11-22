@@ -235,4 +235,4 @@ async def atrasar(message, canciones):
 
 
 
-bot.run("NzkyNzQ3ODQ3NzYxMDAyNTM2.X-iN9w.r3AhEi0YUenvGe6gcSllESCh3bo")
+bot.run("TOKEN")

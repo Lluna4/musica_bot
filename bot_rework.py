@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 import discord
 from discord.utils import get
 from discord.ext import commands
-from discord import FFmpegPCMAudio
+from discord import FFmpegOpusAudio
 
 import threading
 import time
@@ -105,12 +105,12 @@ async def on_message(message):
                 return
             
             if vc.is_playing() and y == True: #si hay una cancion reproduciendose lo pone en cola
-                msg = discord.Embed(title= f"{info.title}", description= f"Se ha puesto en cola {info.title}, esta en el puesto {len(canciones) - 1}", url=inf2)
+                msg = discord.Embed(title= f"{info.title}", description= f"Se ha puesto en cola {info.title}, esta en el puesto {len(canciones) - 2}", url=inf2)
                 msg.set_thumbnail(url=info.thumbnail_url)
                 msg.set_author(name= message.author.name, icon_url=message.author.avatar_url)
                 await message.channel.send(embed=msg)
             if vc.is_playing() and y == False: #si hay una cancion reproduciendose lo pone en cola
-                msg = discord.Embed(title= f"{info.title}", description= f"Se ha puesto en cola {info.title}, esta en el puesto {len(canciones) - 1}", url=link)
+                msg = discord.Embed(title= f"{info.title}", description= f"Se ha puesto en cola {info.title}, esta en el puesto {len(canciones) - 2}", url=link)
                 #msg.set_thumbnail(url=info.get_image())
                 msg.set_author(name= message.author.name, icon_url=message.author.avatar_url)
                 await message.channel.send(embed=msg)
@@ -139,9 +139,9 @@ async def on_message(message):
                 
                 if y == True:
                     OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-                    vc.play(discord.FFmpegPCMAudio(executable=exe, source=song_info["formats"][0]["url"], **OP))
+                    vc.play(discord.FFmpegOpusAudio(executable=exe, source=song_info["formats"][0]["url"], **OP))
                 if y == False:
-                    vc.play(discord.FFmpegPCMAudio(executable=exe, source="m1.mp4"))
+                    vc.play(discord.FFmpegOpusAudio(executable=exe, source="m1.mp4"))
                     
                 await message.channel.send(embed=msg)
                 if puesto == False:
@@ -200,9 +200,9 @@ async def on_message(message):
                 
             OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
             if y == True:
-                vc.play(discord.FFmpegPCMAudio(executable=exe, source=song_info["formats"][0]["url"], **OP))
+                vc.play(discord.FFmpegOpusAudio(executable=exe, source=song_info["formats"][0]["url"], **OP))
             if y == False:
-                vc.play(discord.FFmpegPCMAudio(executable=exe, source="m1.mp4"))
+                vc.play(discord.FFmpegOpusAudio(executable=exe, source="m1.mp4"))
 
             await message.channel.send(embed=msg)
         except Exception:
@@ -216,6 +216,7 @@ async def on_message(message):
        await message.channel.send("Volviendo con la musica")
     if message.content == "ºdisconnect":
         await vc.disconnect()
+        conectado = False
     
 
     
@@ -275,9 +276,9 @@ def xd():
                 
             OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
             if y == True:
-                vc.play(discord.FFmpegPCMAudio(executable=exe, source=song_info["formats"][0]["url"], **OP))
+                vc.play(discord.FFmpegOpusAudio(executable=exe, source=song_info["formats"][0]["url"], **OP))
             if y == False:
-                vc.play(discord.FFmpegPCMAudio(executable=exe, source="m1.mp4"))
+                vc.play(discord.FFmpegOpusAudio(executable=exe, source="m1.mp4"))
         except Exception:
             pass
             
@@ -324,7 +325,7 @@ async def adelantar_y_atrasar(message, canciones):
         song_info = ydl.extract_info(canciones[0], download=False)
         #print(song_info)
     OP = {'before_options': f'-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -ss {tiempo}', 'options': '-vn'}
-    vc.play(discord.FFmpegPCMAudio(executable=exe, source=song_info["formats"][0]["url"], **OP))
+    vc.play(discord.FFmpegOpusAudio(executable=exe, source=song_info["formats"][0]["url"], **OP))
 
 
 async def atrasar(message, canciones):
@@ -345,7 +346,7 @@ async def atrasar(message, canciones):
         song_info = ydl.extract_info(canciones[0], download=False)
         #print(song_info)
     OP = {'before_options': f'-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -ss {tiempo}', 'options': '-vn'}
-    vc.play(discord.FFmpegPCMAudio(executable=exe, source=song_info["formats"][0]["url"], **OP))
+    vc.play(discord.FFmpegOpusAudio(executable=exe, source=song_info["formats"][0]["url"], **OP))
 
 
 

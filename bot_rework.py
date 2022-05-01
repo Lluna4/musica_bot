@@ -131,7 +131,7 @@ async def on_message(message):
         }]}
                     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                         song_info = ydl.extract_info(inf2, download=False)
-                        #print(song_info)
+                        print(song_info)
                 if y == False:
                     msg = discord.Embed(title= f"{link}", description= f"Se esta reproduciendo {link}", url=link)
                     #msg.set_thumbnail(url=info.get_image())
@@ -222,9 +222,13 @@ async def on_message(message):
         await vc.reconnect()
         conectado = True
     if message.content == "ºloop":
-        msg = discord.Embed(description= "Se ha activado el bucle")
+        msg = discord.Embed(description= "Se ha activado el bucle", color=0x2ecc71)
         await message.channel.send(embed=msg)
         loop = True
+    if message.content == "ºunloop":
+        msg = discord.Embed(description= "Se ha desactivado el bucle", color=0xe74c3c)
+        await message.channel.send(embed=msg)
+        loop = False
 
     
     

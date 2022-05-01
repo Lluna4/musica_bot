@@ -20,7 +20,7 @@ from pytube import Search
 
 
 
-
+loop = False
 PORT_NUMBER = 8080
 SPOTIPY_CLIENT_ID = '63c07f06da80472980ca73401b662652'
 SPOTIPY_CLIENT_SECRET = '537bd3f87a704130b02cc48758647b82'
@@ -31,7 +31,7 @@ CACHE = '.spotipyoauthcache'
 sp = spotipy.Spotify(auth_manager=SpotifyOAuth( SPOTIPY_CLIENT_ID, SPOTIPY_CLIENT_SECRET,SPOTIPY_REDIRECT_URI,scope=SCOPE,cache_path=CACHE ))
 
 
-exe = r"C:\Users\carly\Downloads/ffmpeg-4.4-full_build/ffmpeg-4.4-full_build/bin/ffmpeg.exe"
+exe = "/usr/bin/ffmpeg"
 canciones = []
 conectado = False
 vc = ""
@@ -70,6 +70,7 @@ async def on_message(message):
     global info
     global message2
     global y
+    global loop
 
 
 
@@ -217,7 +218,13 @@ async def on_message(message):
     if message.content == "ºdisconnect":
         await vc.disconnect()
         conectado = False
-    
+    if message.content == "ºreconnect":
+        await vc.reconnect()
+        conectado = True
+    if message.content == "ºloop":
+        msg = discord.Embed(description= "Se ha activado el bucle")
+        await message.channel.send(embed=msg)
+        loop = True
 
     
     
@@ -244,7 +251,9 @@ def xd():
                 time.sleep(1)
                 if vc.is_playing() == False:
                     sec = 0
-                    del canciones[0]
+                    if loop == False:
+                        del canciones[0]
+                    
                     try:
                         info = pytube.YouTube(canciones[0])
                         y = True
@@ -350,7 +359,7 @@ async def atrasar(message, canciones):
 
 
 
-bot.run("TOKEN")
+bot.run("NzkyNzQ3ODQ3NzYxMDAyNTM2.GmXWLK.KBUKmlJPGIqefrzaT0HTlAMl5IIdDUF-sjzB_w")
 
 
 

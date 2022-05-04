@@ -18,15 +18,6 @@ from spotipy.oauth2 import SpotifyOAuth
 
 from pytube import Search
 
-import mysql.connector
-
-mydb = mysql.connector.connect(
-  host="localhost",
-  user="root",
-  password="root"
-)
-mycursor = mydb.cursor()
-mycursor.execute("USE musicaDB")
 
 
 loop = False
@@ -80,7 +71,6 @@ async def on_message(message):
     global message2
     global y
     global loop
-    global mycursor
 
 
 
@@ -107,13 +97,6 @@ async def on_message(message):
                 y = True
             try:
                 canciones.append(link)
-                mycursor.execute("SHOW TABLES")
-                for x in mycursor:
-                    x = str(x)
-                    if message.guild.name in x:
-                        mycursor.execute(f"INSERT INTO {message.guild.name} (usuario, link) VALUES ('{message.author.name}','{link}')")
-                    else:
-                        mycursor.execute(f"CREATE TABLE {message.guild.name} (id INT NOT_NULL AUTO_INCREMENT, usuario VARCHAR(255), link VARCHAR(255))")
                 canal = message.author.voice.channel
                 if conectado == False:
                     vc = await canal.connect()
@@ -380,7 +363,7 @@ async def atrasar(message, canciones):
 
 
 
-bot.run("NzkyNzQ3ODQ3NzYxMDAyNTM2.G7I3Nh.4pwQPTHOsPFBE6rLWtc08nOzEipdnLA20ODL4c")
+bot.run("NzkyNzQ3ODQ3NzYxMDAyNTM2.GmXWLK.KBUKmlJPGIqefrzaT0HTlAMl5IIdDUF-sjzB_w")
 
 
 

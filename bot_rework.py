@@ -17,6 +17,11 @@ import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 
 from pytube import Search
+import pymongo
+
+client = pymongo.MongoClient("mongodb+srv://bot:<violeta17>@botdb.qeffd.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
+db = client["musica_bot"]
+col = ""
 
 
 
@@ -96,7 +101,8 @@ async def on_message(message):
                 inf2 = await texto_a_linkf(link)
                 y = True
             try:
-                canciones.append(link)
+                col = db[str(message.guild.id)]
+                x = col.insert_one({"link": link})
                 canal = message.author.voice.channel
                 if conectado == False:
                     vc = await canal.connect()
@@ -106,12 +112,14 @@ async def on_message(message):
                 return
             
             if vc.is_playing() and y == True: #si hay una cancion reproduciendose lo pone en cola
-                msg = discord.Embed(title= f"{info.title}", description= f"Se ha puesto en cola {info.title}, esta en el puesto {len(canciones) - 2}", url=inf2)
+                col = db[str(message.guild.id)]
+                msg = discord.Embed(title= f"{info.title}", description= f"Se ha puesto en cola {info.title}, esta en el puesto {len(col.find())}", url=inf2)
                 msg.set_thumbnail(url=info.thumbnail_url)
                 msg.set_author(name= message.author.name, icon_url=message.author.avatar_url)
                 await message.channel.send(embed=msg)
             if vc.is_playing() and y == False: #si hay una cancion reproduciendose lo pone en cola
-                msg = discord.Embed(title= f"{info.title}", description= f"Se ha puesto en cola {info.title}, esta en el puesto {len(canciones) - 2}", url=link)
+                col = db[str(message.guild.id)]
+                msg = discord.Embed(title= f"{info.title}", description= f"Se ha puesto en cola {info.title}, esta en el puesto {len(col.find)}", url=link)
                 #msg.set_thumbnail(url=info.get_image())
                 msg.set_author(name= message.author.name, icon_url=message.author.avatar_url)
                 await message.channel.send(embed=msg)
@@ -159,10 +167,10 @@ async def on_message(message):
                 pass
     
     if message.content.startswith("ºadelantar"):
-        await adelantar_y_atrasar(message.content, canciones)
+        await adelantar_y_atrasar(message.content, db, message.guild.id)
     
     if message.content.startswith("ºatrasar"):
-        await atrasar(message.content, canciones)
+        await atrasar(message.content, db, message.guild.id)
     
     if message.content == "ºskip":
 
@@ -324,10 +332,10 @@ async def texto_a_linkf(link):
     return link
 
 
-async def adelantar_y_atrasar(message, canciones):
+async def adelantar_y_atrasar(message, db, guild):
     global sec
     tiempo = message[10: ]
-    print(canciones)
+    #print(canciones)
     
     tiempo = sec + int(tiempo)
     sec = tiempo
@@ -335,13 +343,14 @@ async def adelantar_y_atrasar(message, canciones):
     vc.stop()
     ydl_opts = {}
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-        song_info = ydl.extract_info(canciones[0], download=False)
+        col = db[str(guild)]
+        song_info = ydl.extract_info(col.find_one(), download=False)
         #print(song_info)
     OP = {'before_options': f'-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -ss {tiempo}', 'options': '-vn'}
     vc.play(discord.FFmpegOpusAudio(executable=exe, source=song_info["formats"][0]["url"], **OP))
 
 
-async def atrasar(message, canciones):
+async def atrasar(message, db, guild):
     global sec
     tiempo = message[8: ]
     print(canciones)
@@ -362,8 +371,7 @@ async def atrasar(message, canciones):
     vc.play(discord.FFmpegOpusAudio(executable=exe, source=song_info["formats"][0]["url"], **OP))
 
 
-
-bot.run("NzkyNzQ3ODQ3NzYxMDAyNTM2.GmXWLK.KBUKmlJPGIqefrzaT0HTlAMl5IIdDUF-sjzB_w")
+bot.run("NzkyNzQ3ODQ3NzYxMDAyNTM2.GY0Bi9.Ja97YIGdfFsb4qMWU1uQJ5B4Dhh2GHGtI7Z6UM")
 
 
 

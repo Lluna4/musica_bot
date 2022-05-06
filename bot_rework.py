@@ -18,9 +18,10 @@ from spotipy.oauth2 import SpotifyOAuth
 
 from pytube import Search
 import pymongo
+import time
 
 client = pymongo.MongoClient("mongodb+srv://bot:<violeta17>@botdb.qeffd.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
-db = client["musica_bot"]
+db = client["BotDB"]
 col = ""
 
 
@@ -37,7 +38,7 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth( SPOTIPY_CLIENT_ID, SPOTIPY_CLIEN
 
 
 exe = "/usr/bin/ffmpeg"
-canciones = []
+#canciones = []
 conectado = False
 vc = ""
 PORT = 5050
@@ -97,12 +98,12 @@ async def on_message(message):
                 print(c["name"])
 
             else:
-                info = await texto_a_link(link)
+                info = await texto_a_link(link, message.guild.id)
                 inf2 = await texto_a_linkf(link)
                 y = True
             try:
                 col = db[str(message.guild.id)]
-                x = col.insert_one({"link": link})
+                x = col.insert_one({"link": link, "time": time.time()})
                 canal = message.author.voice.channel
                 if conectado == False:
                     vc = await canal.connect()
@@ -113,12 +114,14 @@ async def on_message(message):
             
             if vc.is_playing() and y == True: #si hay una cancion reproduciendose lo pone en cola
                 col = db[str(message.guild.id)]
+                x = col.insert_one({"link": link, "time": time.time()})
                 msg = discord.Embed(title= f"{info.title}", description= f"Se ha puesto en cola {info.title}, esta en el puesto {len(col.find())}", url=inf2)
                 msg.set_thumbnail(url=info.thumbnail_url)
                 msg.set_author(name= message.author.name, icon_url=message.author.avatar_url)
                 await message.channel.send(embed=msg)
             if vc.is_playing() and y == False: #si hay una cancion reproduciendose lo pone en cola
                 col = db[str(message.guild.id)]
+                x = col.insert_one({"link": link, "time": time.time()})
                 msg = discord.Embed(title= f"{info.title}", description= f"Se ha puesto en cola {info.title}, esta en el puesto {len(col.find)}", url=link)
                 #msg.set_thumbnail(url=info.get_image())
                 msg.set_author(name= message.author.name, icon_url=message.author.avatar_url)
@@ -154,7 +157,7 @@ async def on_message(message):
                     
                 await message.channel.send(embed=msg)
                 if puesto == False:
-                    x1 = threading.Thread(target=xd)
+                    x1 = threading.Thread(target=xd, args=(message.guild.id,))
                     x1.start()
                     
 
@@ -162,7 +165,13 @@ async def on_message(message):
         except IndexError:
             await message.channel.send("La cancion que has puesto no es valida")
             try:
-                del canciones[0]
+                kk = db[str(message.guild.id)]
+                kk =kk.find()
+                oo = 0
+                for a in kk["time"]:
+                    if a < oo:
+                        oo = a
+                kk = kk.delete_one({"time": oo})
             except Exception:
                 pass
     
@@ -177,26 +186,38 @@ async def on_message(message):
             
         try:
             vc.stop()
-            del canciones[0]
+            kk = db[str(message.guild.id)]
+            kk =kk.find()
+            oo = 0
+            for a in kk["time"]:
+                if a < oo:
+                    oo = a
+            kk = kk.delete_one({"time": oo})
+
             try:
-                info = pytube.YouTube(canciones[0])
+                col = db[str(message.guild.id)]
+                info = pytube.YouTube(col.find_one()["link"])
                 y = True
             except Exception:
                 y = False
             if y == True:
-                msg = discord.Embed(title= f"{info.title}", description= f"Se esta reproduciendo {info.title}", url=canciones[0])
+                col = db[str(message.guild.id)]
+                msg = discord.Embed(title= f"{info.title}", description= f"Se esta reproduciendo {info.title}", url=col.find_one()["link"])
                 msg.set_thumbnail(url=info.thumbnail_url)
                 msg.set_author(name= message.author.name, icon_url=message.author.avatar_url)
                 ydl_opts = {}
                 with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                    song_info = ydl.extract_info(canciones[0], download=False)
+                    
+                    song_info = ydl.extract_info(col.find_one()["link"], download=False)
                     #print(song_info)
             if y == False:
-            
-                msg = discord.Embed(title= f"{info.title}", description= f"Se esta reproduciendo {info.title}", url=canciones[0])
+                col = db[str(message.guild.id)]
+                msg = discord.Embed(title= f"{info.title}", description= f"Se esta reproduciendo {info.title}", url=col.find_one()["link"])
                 #msg.set_thumbnail(url=info.thumbnail_url)
                 msg.set_author(name= message.author.name, icon_url=message.author.avatar_url)
-                r = requests.get(canciones[0])
+                col = db[str(message.guild.id)]
+
+                r = requests.get(col.find_one()["link"])
                 try:
                     with open("m1.mp4", "wb") as f:
                         f.write(r.content)
@@ -249,7 +270,7 @@ async def on_message(message):
         
 
         
-def xd():
+def xd(guild):
     global sec
     global message2
     sec = 0
@@ -264,27 +285,35 @@ def xd():
                 if vc.is_playing() == False:
                     sec = 0
                     if loop == False:
-                        del canciones[0]
-                    
+                        kk = db[str(guild)]
+                        kk =kk.find()
+                        oo = 0
+                        for a in kk["time"]:
+                            if a < oo:
+                                oo = a
+                        kk = kk.delete_one({"time": oo})
+                        
                     try:
-                        info = pytube.YouTube(canciones[0])
+                        col = db[str(guild)]
+                        info = pytube.YouTube(col.find_one()["link"])
                         y = True
                     except Exception:
                         y = False
                     if y == True:
-                        msg = discord.Embed(title= f"{info.title}", description= f"Se esta reproduciendo {info.title}", url=canciones[0])
+                        col = db[str(guild)]
+                        msg = discord.Embed(title= f"{info.title}", description= f"Se esta reproduciendo {info.title}", url=col.find_one()["link"])
                         msg.set_thumbnail(url=info.thumbnail_url)
                         #msg.set_author(name= message.author.name, icon_url=message.author.avatar_url)
                         ydl_opts = {}
                         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                            song_info = ydl.extract_info(canciones[0], download=False)
+                            song_info = ydl.extract_info(col.find_one()["link"], download=False)
                             #print(song_info)
                     if y == False:
-                    
-                        msg = discord.Embed(title= f"{info.title}", description= f"Se esta reproduciendo {info.title}", url=canciones[0])
+                        col = db[str(guild)]
+                        msg = discord.Embed(title= f"{info.title}", description= f"Se esta reproduciendo {info.title}", url=col.find_one()["link"])
                         #msg.set_thumbnail(url=info.thumbnail_url)
                         #msg.set_author(name= message.author.name, icon_url=message.author.avatar_url)
-                        r = requests.get(canciones[0])
+                        r = requests.get(col.find_one()["link"])
                         try:
                             with open("m1.mp4", "wb") as f:
                                 f.write(r.content)
@@ -316,12 +345,13 @@ async def linkd(message):
     print(link)
     return link
 
-async def texto_a_link(link):
+async def texto_a_link(link, guild):
     s = Search(link)
     t = s.results[0]
  
     link = f"https://youtu.be/{str(t)[41:-1]}"
-    canciones.append(link)
+    col = db[str(guild)]
+    col.insert_one({"link": link, "time": time.time()})
     return pytube.YouTube(link) #para comprobar si una cancion esta puesta, al enviar el mensaje se comprueba, no todo el rato
 
 async def texto_a_linkf(link):
@@ -353,7 +383,7 @@ async def adelantar_y_atrasar(message, db, guild):
 async def atrasar(message, db, guild):
     global sec
     tiempo = message[8: ]
-    print(canciones)
+    
     print(sec)
     print(tiempo)
     tiempo = sec - int(tiempo)
@@ -365,7 +395,8 @@ async def atrasar(message, db, guild):
     vc.stop()
     ydl_opts = {}
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-        song_info = ydl.extract_info(canciones[0], download=False)
+        col = db[str(guild)]
+        song_info = ydl.extract_info(col.find_one()["link"], download=False)
         #print(song_info)
     OP = {'before_options': f'-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -ss {tiempo}', 'options': '-vn'}
     vc.play(discord.FFmpegOpusAudio(executable=exe, source=song_info["formats"][0]["url"], **OP))

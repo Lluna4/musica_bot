@@ -402,7 +402,7 @@ async def atrasar(message, db, guild):
     vc.play(discord.FFmpegOpusAudio(executable=exe, source=song_info["formats"][0]["url"], **OP))
 
 
-bot.run("NzkyNzQ3ODQ3NzYxMDAyNTM2.GY0Bi9.Ja97YIGdfFsb4qMWU1uQJ5B4Dhh2GHGtI7Z6UM")
+bot.run("NzkyNzQ3ODQ3NzYxMDAyNTM2.G3kHLq.UcRSI5MsKOJ80hlPtb8Rm5noke6e3hQ9sEXNnU")
 
 
 

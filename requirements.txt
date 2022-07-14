@@ -3,3 +3,4 @@ PyNaCl
 pytube
 youtube-dl
 pytest
+aiohttp>=3.8.0 # not directly required, pinned by Snyk to avoid a vulnerability

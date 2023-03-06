@@ -1,6 +1,8 @@
 discord.py
 PyNaCl
 pytube
-youtube-dl
+yt-dlp
+requests
 pytest
 tinytag
+spotipy

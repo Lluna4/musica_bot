@@ -16,8 +16,17 @@ import requests
 from tinytag import TinyTag
 from pytube import Search
 import typing
+import pickle
+from pathlib import Path
 
-tags = {}
+my_file = Path("db.a")
+if my_file.is_file():
+    tags = pickle.load(open('db.a', 'rb'))
+else:
+    tags = {}
+
+
+
 
 vc = ""
 lista = []
@@ -29,16 +38,19 @@ bot = discord.Client(intents=intents)
 tree = app_commands.CommandTree(bot)
 
 class reproductor(discord.ui.View):
-    parar : bool = True
-    parar = True
     @discord.ui.button(label="Desconectar", style=discord.ButtonStyle.danger)
     async def desconectar(self, interaction: discord.Interaction, button: discord.ui.Button):
+        try:
+            del lista
+        except Exception:
+            pass
+        lista = []
         await vc.disconnect()
         await interaction.response.send_message("Desconectado", ephemeral=True)
 
     @discord.ui.button(label="Stop/Resume", style=discord.ButtonStyle.blurple)
     async def parar(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if self.parar == True:
+        if vc.is_playing() == False:
             vc.resume()
             button.label = "Stop"
             self.parar = False
@@ -50,22 +62,24 @@ class reproductor(discord.ui.View):
             await interaction.response.send_message("Pausado", ephemeral=True)
     @discord.ui.button(label="Skip", style=discord.ButtonStyle.blurple)
     async def skip(self, interaction: discord.Interaction, button: discord.ui.Button):
-        vc.stop()
-        if lista[0]:
-            del lista[0]
+        if lista:
+            vc.stop()
+            await interaction.response.send_message("Saltando...", ephemeral=True)
+            playback(interaction)
         else:
-            interaction.response.send_message("No hay cancion a la que skipear")
-        interaction.response.send_message("Saltando...", ephemeral=True)
-        playback(interaction)
+            await interaction.response.send_message("No hay cancion a la que skipear")
+            return
+
 
 @bot.event
 async def on_ready():
     global client
     await tree.sync(guild=discord.Object(id=369922977690681345))
-    print("uff")
+    print("Activado!")
     await bot.change_presence(activity=discord.Game(name="/play para poner canciones!"))
 
 @tree.command(name = "play", description= "Pon el nombre o el link de youtube de la cancion que quieras", guild=discord.Object(id=369922977690681345))
+@app_commands.describe(cancion="Pon el nombre o el link de la cancion que deseas poner, te autocompleta si lo deseas!")
 async def play(interaction: discord.Interaction, cancion: str):
     global vc, lista, EXE
     if "https:" in cancion:
@@ -81,7 +95,6 @@ async def play(interaction: discord.Interaction, cancion: str):
     if lista:
         if type(vc) != str:
             if vc.is_playing() == True:
-                lista.append(cancion)
                 msg = discord.Embed(title= f"{info.title}", description= f"Se ha puesto en cola {info.title}, esta en el puesto {len(lista)}", url=cancion, color=interaction.user.color)
                 msg.set_author(name= interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
                 await interaction.response.send_message(embed=msg)
@@ -100,13 +113,11 @@ async def play(interaction: discord.Interaction, cancion: str):
                 'preferredquality': '192',
                 }]}
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    song_info = ydl.extract_info(lista[0], download=False)
-                del lista[0]
+                    song_info = ydl.extract_info(lista[0], download=False)           
                 OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
                 vc.play(discord.FFmpegOpusAudio(executable=EXE, source=song_info['url'], **OP))
         else:
             if interaction.user.voice != None:
-                lista.append(cancion)
                 vc = await interaction.user.voice.channel.connect()
                 view = reproductor()
                 msg = discord.Embed(title= f"{info.title}", description= f"Se esta reproduciendo {info.title}", url=lista[0], color=interaction.user.color)
@@ -125,10 +136,10 @@ async def play(interaction: discord.Interaction, cancion: str):
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     song_info = ydl.extract_info(lista[0], download=False)
                 OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-                del lista[0]
                 vc.play(discord.FFmpegOpusAudio(executable=EXE, source=song_info['url'], **OP), after=lambda e: playback(interaction))
             else:
                 msg = discord.Embed(title="Error", description="No estas en un canal de voz", color=0xe74c3c)
+        lista.pop(0)
 
 @play.autocomplete('cancion')
 async def fruits_autocomplete(
@@ -144,33 +155,38 @@ async def fruits_autocomplete(
     ]
 
 def playback(interaction: discord.Interaction):
-    del lista[0]
-    cancion = lista[0]
-    if "https:" in cancion:
-        info = pytube.YouTube(cancion)
-    else:
-        s = Search(cancion)
-        s = s.results[0]
-        info = pytube.YouTube(f"https://youtu.be/{str(s)[41:-1]}")
-        cancion = f"https://youtu.be/{str(s)[41:-1]}"
-    if info.title == None:
-        info.title = ""
-    #asyncio.run_coroutine_threadsafe(interaction.channel.send(embed=msg, view=view), asyncio.get_event_loop())
-    ydl_opts = {
-    'format': 'bestaudio/best',
-    'noplaylist':'True',
-    'outtmpl': 'song.%(ext)s',
-    'postprocessors': [{
-    'key': 'FFmpegExtractAudio',
-    'preferredcodec': 'mp3',
-    'preferredquality': '192',
-    }]}
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        song_info = ydl.extract_info(lista[0], download=False)
-    del lista[0]
-    OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-    vc.play(discord.FFmpegOpusAudio(executable=EXE, source=song_info['url'], **OP), after=lambda e: playback(interaction))
+    global lista
+    print(lista)
+    try:
+        lista.pop(0)
+    except Exception:
+        return
+    if lista:
+        cancion = lista[0]
+        if "https:" in cancion:
+            info = pytube.YouTube(cancion)
+        else:
+            s = Search(cancion)
+            s = s.results[0]
+            info = pytube.YouTube(f"https://youtu.be/{str(s)[41:-1]}")
+            cancion = f"https://youtu.be/{str(s)[41:-1]}"
+        if info.title == None:
+            info.title = ""
+        #asyncio.run_coroutine_threadsafe(interaction.channel.send(embed=msg, view=view), asyncio.get_event_loop())
+        ydl_opts = {
+        'format': 'bestaudio/best',
+        'noplaylist':'True',
+        'outtmpl': 'song.%(ext)s',
+        'postprocessors': [{
+        'key': 'FFmpegExtractAudio',
+        'preferredcodec': 'mp3',
+        'preferredquality': '192',
+        }]}
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            song_info = ydl.extract_info(lista[0], download=False)
 
+        OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
+        vc.play(discord.FFmpegOpusAudio(executable=EXE, source=song_info['url'], **OP), after=lambda e: playback(interaction))
 
 @tree.command(name = "set-fc", description= "Pon los gamertags que quieras de la lista!", guild=discord.Object(id=369922977690681345))
 @app_commands.describe(n3ds="Pon tu codigo de amigo de 3ds. Ejemplo: 4141-9637-9341")
@@ -194,8 +210,15 @@ async def setfc(interaction: discord.Interaction, n3ds: typing.Optional[str], sw
         gamertags.append({"home":home})
     if (unite):
         gamertags.append({"unite":unite})
-
-    tags.update({interaction.user: gamertags})
+    try:
+        if (tags[interaction.user.id]):
+            li = tags[interaction.user.id]
+            for i in li:
+                gamertags.append(i)
+    except Exception:
+        pass
+    tags.update({interaction.user.id: gamertags})
+    pickle.dump(tags, open("db.a", "wb"))
     msg = discord.Embed(title="Hecho!", description="Se ha establecido correctamente tu código de amigo.", color=0x2ecc71)
     print(tags)
     await interaction.response.send_message(embed=msg, ephemeral=True)
@@ -211,7 +234,7 @@ async def fc(interaction: discord.Interaction, usuario: typing.Optional[str]):
         user = interaction.user
     desc = ""
     try:
-        datos = tags[user]
+        datos = tags[user.id]
     except Exception:
         msg = discord.Embed(title="Error", description="La persona que has mencionado no tiene puestos sus tags!", color=0xe74c3c)
         await interaction.response.send_message(embed=msg)
@@ -231,11 +254,31 @@ async def delete(interaction: discord.Interaction):
     global tags
     user = interaction.user
     try:
-        del tags[user]
+        del tags[user.id]
+        pickle.dump(tags, open("db.a", "wb"))
         msg = discord.Embed(title="Hecho!", description="Se ha borrado correctamente tu perfil", color=0x2ecc71)
     except Exception:
         msg = discord.Embed(title="Error", description="No tienes tus tags puestos", color=0xe74c3c)
-    await interaction.response.send_message(embed=msg, ephemeral=true)
+    await interaction.response.send_message(embed=msg, ephemeral=True)
 
+@tree.command(name = "custom-fc", description= "Pon el codigo que quieras del juego que quieras!", guild=discord.Object(id=369922977690681345))
+async def custom(interaction: discord.Interaction, juego: str, codigo: str):
+    global tags
+    gamertags = []
+
+    try:
+        if (tags[interaction.user.id]):
+            li = tags[interaction.user.id]
+            for i in li:
+                gamertags.append(i)
+    except Exception:
+        pass
+    gamertags.append({juego: codigo})
+    tags.update({interaction.user.id: gamertags})
+    pickle.dump(tags, open("db.a", "wb"))
+    msg = discord.Embed(title="Hecho!", description="Se ha establecido correctamente tu código de amigo.", color=0x2ecc71)
+    print(tags)
+    await interaction.response.send_message(embed=msg, ephemeral=True)
+    
 bot.run("")
 

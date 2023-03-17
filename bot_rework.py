@@ -83,15 +83,23 @@ async def on_ready():
 async def play(interaction: discord.Interaction, cancion: str):
     global vc, lista, EXE
     if "https:" in cancion:
-        info = pytube.YouTube(cancion)
+        if "list" in cancion:
+            playlist = pytube.Playlist(cancion)
+            for url in playlist.video_urls[:3]:
+                lista.append(url)
+            info = pytube.YouTube(lista[0])
+        else:
+            info = pytube.YouTube(cancion)
+            lista.append(cancion)
     else:
         s = Search(cancion)
         s = s.results[0]
         info = pytube.YouTube(f"https://youtu.be/{str(s)[41:-1]}")
         cancion = f"https://youtu.be/{str(s)[41:-1]}"
+        lista.append(cancion)
     if info.title == None:
         info.title = ""
-    lista.append(cancion)
+    
     if lista:
         if type(vc) != str:
             if vc.is_playing() == True:

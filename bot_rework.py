@@ -25,9 +25,6 @@ if my_file.is_file():
 else:
     tags = {}
 
-
-
-skip = False
 vc = ""
 lista = []
 EXE = "/usr/bin/ffmpeg"
@@ -163,38 +160,37 @@ async def fruits_autocomplete(
 
 def playback(interaction: discord.Interaction):
     global lista, skip
-    if skip == False:
-        print(lista)
-        try:
-            lista.pop(0)
-        except Exception:
-            return
-        if lista:
-            cancion = lista[0]
-            if "https:" in cancion:
-                info = pytube.YouTube(cancion)
-            else:
-                s = Search(cancion)
-                s = s.results[0]
-                info = pytube.YouTube(f"https://youtu.be/{str(s)[41:-1]}")
-                cancion = f"https://youtu.be/{str(s)[41:-1]}"
-            if info.title == None:
-                info.title = ""
-            #asyncio.run_coroutine_threadsafe(interaction.channel.send(embed=msg, view=view), asyncio.get_event_loop())
-            ydl_opts = {
-            'format': 'bestaudio/best',
-            'noplaylist':'True',
-            'outtmpl': 'song.%(ext)s',
-            'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '192',
-            }]}
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                song_info = ydl.extract_info(lista[0], download=False)
+    print(lista)
+    try:
+        lista.pop(0)
+    except Exception:
+        return
+    if lista:
+        cancion = lista[0]
+        if "https:" in cancion:
+            info = pytube.YouTube(cancion)
+        else:
+            s = Search(cancion)
+            s = s.results[0]
+            info = pytube.YouTube(f"https://youtu.be/{str(s)[41:-1]}")
+            cancion = f"https://youtu.be/{str(s)[41:-1]}"
+        if info.title == None:
+            info.title = ""
+        #asyncio.run_coroutine_threadsafe(interaction.channel.send(embed=msg, view=view), asyncio.get_event_loop())
+        ydl_opts = {
+        'format': 'bestaudio/best',
+        'noplaylist':'True',
+        'outtmpl': 'song.%(ext)s',
+        'postprocessors': [{
+        'key': 'FFmpegExtractAudio',
+        'preferredcodec': 'mp3',
+        'preferredquality': '192',
+        }]}
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            song_info = ydl.extract_info(lista[0], download=False)
 
-            OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-            vc.play(discord.FFmpegOpusAudio(executable=EXE, source=song_info['url'], **OP), after=lambda e: playback(interaction))
+        OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
+        vc.play(discord.FFmpegOpusAudio(executable=EXE, source=song_info['url'], **OP), after=lambda e: playback(interaction))
 
 @tree.command(name = "set-fc", description= "Pon los gamertags que quieras de la lista!", guild=discord.Object(id=369922977690681345))
 @app_commands.describe(n3ds="Pon tu codigo de amigo de 3ds. Ejemplo: 4141-9637-9341")

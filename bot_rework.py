@@ -73,11 +73,11 @@ class reproductor(discord.ui.View):
 @bot.event
 async def on_ready():
     global client
-    await tree.sync(guild=discord.Object(id=369922977690681345))
+    await tree.sync()
     print("Activado!")
     await bot.change_presence(activity=discord.Game(name="/play para poner canciones!"))
 
-@tree.command(name = "play", description= "Pon el nombre o el link de youtube de la cancion que quieras", guild=discord.Object(id=369922977690681345))
+@tree.command(name = "play", description= "Pon el nombre o el link de youtube de la cancion que quieras")
 @app_commands.describe(cancion="Pon el nombre o el link de la cancion que deseas poner, te autocompleta si lo deseas!")
 async def play(interaction: discord.Interaction, cancion: str):
     global vc, lista, EXE, skip
@@ -149,7 +149,7 @@ async def play(interaction: discord.Interaction, cancion: str):
                 msg = discord.Embed(title="Error", description="No estas en un canal de voz", color=0xe74c3c)
                 await interaction.response.send_message(embed=msg)
 
-@tree.command(name ="lofi", description= "Pone lofi (del canal de lofi girl) en el canal que estes!", guild=discord.Object(id=369922977690681345))
+@tree.command(name ="lofi", description= "Pone lofi (del canal de lofi girl) en el canal que estes!")
 async def lofi(interaction: discord.Interaction):
     global vc
     if type(vc) == str and interaction.user.voice != None:
@@ -175,7 +175,7 @@ async def lofi(interaction: discord.Interaction):
     msg = discord.Embed(title="💖Lofi💖", description="Se esta reproduciendo lofi", color=0xe91e63)
     await interaction.response.send_message(embed=msg)
 
-@tree.command(name ="un-lofi", description= "Quita el lofi de tu canal", guild=discord.Object(id=369922977690681345))
+@tree.command(name ="un-lofi", description= "Quita el lofi de tu canal")
 async def unlofi(interaction: discord.Interaction):
     global vc
     if type(vc) != str and vc.is_playing() == True:
@@ -238,7 +238,7 @@ def playback(interaction: discord.Interaction):
             OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
             vc.play(discord.FFmpegOpusAudio(executable=EXE, source=song_info['url'], **OP), after=lambda e: playback(interaction))
 
-@tree.command(name = "set-fc", description= "Pon los gamertags que quieras de la lista!", guild=discord.Object(id=369922977690681345))
+@tree.command(name = "set-fc", description= "Pon los gamertags que quieras de la lista!")
 @app_commands.describe(n3ds="Pon tu codigo de amigo de 3ds. Ejemplo: 4141-9637-9341")
 @app_commands.describe(switch="Pon tu codigo de amigo de switch. Ejemplo: SW-2809-4574-2883")
 @app_commands.describe(pogo="Pon tu codigo de amigo de pokemon go. Ejemplo: 9387-7346-1802")
@@ -273,7 +273,7 @@ async def setfc(interaction: discord.Interaction, n3ds: typing.Optional[str], sw
     print(tags)
     await interaction.response.send_message(embed=msg, ephemeral=True)
 
-@tree.command(name = "fc", description= "Muestra los gamertags de algiuen o si no pones argumentos son los tuyos propios", guild=discord.Object(id=369922977690681345))
+@tree.command(name = "fc", description= "Muestra los gamertags de algiuen o si no pones argumentos son los tuyos propios")
 @app_commands.describe(usuario="Pinguea el usuario del cual quieres ver los tags, sino pones nada pone los tuyos")
 async def fc(interaction: discord.Interaction, usuario: typing.Optional[str]):
     global tags
@@ -299,7 +299,7 @@ async def fc(interaction: discord.Interaction, usuario: typing.Optional[str]):
         msg = discord.Embed(title=f"Codigos de amigo de {user.display_name}", description=desc, color=user.color)
     await interaction.response.send_message(embed=msg)
 
-@tree.command(name = "del-fc", description= "Borra tu perfil de codigos de amigo", guild=discord.Object(id=369922977690681345))
+@tree.command(name = "del-fc", description= "Borra tu perfil de codigos de amigo")
 async def delete(interaction: discord.Interaction):
     global tags
     user = interaction.user
@@ -311,7 +311,7 @@ async def delete(interaction: discord.Interaction):
         msg = discord.Embed(title="Error", description="No tienes tus tags puestos", color=0xe74c3c)
     await interaction.response.send_message(embed=msg, ephemeral=True)
 
-@tree.command(name = "custom-fc", description= "Pon el codigo que quieras del juego que quieras!", guild=discord.Object(id=369922977690681345))
+@tree.command(name = "custom-fc", description= "Pon el codigo que quieras del juego que quieras!")
 async def custom(interaction: discord.Interaction, juego: str, codigo: str):
     global tags
     gamertags = []

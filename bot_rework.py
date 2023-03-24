@@ -19,6 +19,7 @@ import typing
 import pickle
 from pathlib import Path
 
+
 my_file = Path("db.a")
 if my_file.is_file():
     tags = pickle.load(open('db.a', 'rb'))
@@ -26,10 +27,9 @@ else:
     tags = {}
 
 
-
 skip = False
 vc = ""
-lista = []
+queue = {}
 EXE = "/usr/bin/ffmpeg"
 intents = discord.Intents.all()
 intents.members = True  
@@ -62,17 +62,33 @@ class reproductor(discord.ui.View):
             await interaction.response.send_message("Pausado", ephemeral=True)
     @discord.ui.button(label="Skip", style=discord.ButtonStyle.blurple)
     async def skip(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if lista:
+        if queue[interaction.guild_id] != []:
             vc.stop()
             await interaction.response.send_message("Saltando...", ephemeral=True)
         else:
             await interaction.response.send_message("No hay cancion a la que skipear")
             return
+    @discord.ui.button(label="Lista", style=discord.ButtonStyle.blurple)
+    async def lista(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if queue[interaction.guild_id] == []:
+            await interaction.response.send_message("No hay nada en la cola", ephemeral=True)
+            return
+        msg = discord.Embed(title="Cola", description="Estas son las canciones que hay en la cola", color=interaction.user.color)
+        msg.set_author(name= interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
+        for i in range(len(queue[interaction.guild_id])):
+            while True:
+                try:
+                    info = pytube.YouTube(queue[interaction.guild_id][i])
+                    break
+                except pytube.exceptions.PytubeError:
+                    pass
+            msg.add_field(name=f"{i+1}. {info.title}", value="", inline=False)
+        await interaction.response.send_message(embed=msg, ephemeral=True)
+
 
 
 @bot.event
 async def on_ready():
-    global client
     await tree.sync()
     print("Activado!")
     await bot.change_presence(activity=discord.Game(name="/play para poner canciones!"))
@@ -80,74 +96,70 @@ async def on_ready():
 @tree.command(name = "play", description= "Pon el nombre o el link de youtube de la cancion que quieras")
 @app_commands.describe(cancion="Pon el nombre o el link de la cancion que deseas poner, te autocompleta si lo deseas!")
 async def play(interaction: discord.Interaction, cancion: str):
-    global vc, lista, EXE, skip
+    global vc, queue, EXE, skip
+    buff = []
     if "https:" in cancion:
         if "list" in cancion:
             playlist = pytube.Playlist(cancion)
             for url in playlist.video_urls:
-                lista.append(url)
-            info = pytube.YouTube(lista[0])
-            print(lista)
+                buff.append(url)
+            #repeat pytube.YouTube until it works
+            while True:
+                try:
+                    info = pytube.YouTube(playlist.video_urls[0])
+                    break
+                except pytube.exceptions.PytubeError:
+                    pass
+            print(buff)
         else:
-            info = pytube.YouTube(cancion)
-            lista.append(cancion)        
+            #repeat pytube.YouTube until it works
+            while True:
+                try:
+                    info = pytube.YouTube(cancion)
+                    break
+                except pytube.exceptions.PytubeError:
+                    pass
+            buff.append(cancion)        
     else:
         s = Search(cancion)
         s = s.results[0]
         info = pytube.YouTube(f"https://youtu.be/{str(s)[41:-1]}")
         cancion = f"https://youtu.be/{str(s)[41:-1]}"
-        lista.append(cancion)
+        buff.append(cancion)
     if info.title == None:
         info.title = ""
     
-    if lista:
-        if type(vc) != str:
-            if vc.is_playing() == True:
-                msg = discord.Embed(title= f"{info.title}", description= f"Se ha puesto en cola {info.title}, esta en el puesto {len(lista)}", url=cancion, color=interaction.user.color)
-                msg.set_author(name= interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
-                await interaction.response.send_message(embed=msg)
-            else:
-                msg = discord.Embed(title= f"{info.title}", description= f"Se esta reproduciendo {info.title}", url=lista[0], color=interaction.user.color)
-                msg.set_thumbnail(url=info.thumbnail_url)
-                msg.set_author(name= interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
-                await interaction.response.send_message(embed=msg, view=reproductor())
-                ydl_opts = {
-                'format': 'bestaudio/best',
-                'noplaylist':'True',
-                'outtmpl': 'song.%(ext)s',
-                'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '192',
-                }]}
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    song_info = ydl.extract_info(lista[0], download=False)           
-                OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-                vc.play(discord.FFmpegOpusAudio(executable=EXE, source=song_info['url'], **OP))
-        else:
-            if interaction.user.voice != None:
-                vc = await interaction.user.voice.channel.connect()
-                view = reproductor()
-                msg = discord.Embed(title= f"{info.title}", description= f"Se esta reproduciendo {info.title}", url=lista[0], color=interaction.user.color)
-                msg.set_thumbnail(url=info.thumbnail_url)
-                msg.set_author(name= interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
-                await interaction.response.send_message(embed=msg, view=view)
-                ydl_opts = {
-                'format': 'bestaudio/best',
-                'noplaylist':'True',
-                'outtmpl': 'song.%(ext)s',
-                'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '192',
-                }]}
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    song_info = ydl.extract_info(lista[0], download=False)
-                OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-                vc.play(discord.FFmpegOpusAudio(executable=EXE, source=song_info['url'], **OP), after=lambda e: playback(interaction))
-            else:
-                msg = discord.Embed(title="Error", description="No estas en un canal de voz", color=0xe74c3c)
-                await interaction.response.send_message(embed=msg)
+    if type(vc) == str and interaction.user.voice != None:
+        vc = await interaction.user.voice.channel.connect()
+    if vc.is_playing() == True:
+        msg = discord.Embed(title="Añadido a la cola", description=f"{info.title} ha sido añadido a la cola", color=interaction.user.color)
+        msg.set_thumbnail(url=info.thumbnail_url)
+        msg.set_author(name= interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
+        await interaction.response.send_message(embed=msg)
+        queue[interaction.guild_id].extend(buff)
+        return
+    if interaction.guild_id not in queue:
+        queue[interaction.guild_id] = []
+    queue[interaction.guild_id].extend(buff)
+    view = reproductor()
+    msg = discord.Embed(title= f"{info.title}", description= f"Se esta reproduciendo {info.title}", url=queue[interaction.guild_id][0], color=interaction.user.color)
+    msg.set_thumbnail(url=info.thumbnail_url)
+    msg.set_author(name= interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
+    await interaction.response.send_message(embed=msg, view=view)
+    ydl_opts = {
+    'format': 'bestaudio/best',
+    'noplaylist':'True',
+    'outtmpl': 'song.%(ext)s',
+    'postprocessors': [{
+    'key': 'FFmpegExtractAudio',
+    'preferredcodec': 'mp3',
+    'preferredquality': '192',
+    }]}
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        song_info = ydl.extract_info(queue[interaction.guild_id][0], download=False)
+    OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
+    vc.play(discord.FFmpegOpusAudio(executable=EXE, source=song_info['url'], **OP), after=lambda e: asyncio.run(playback(interaction)))
+    queue[interaction.guild_id].pop(0)
 
 @tree.command(name ="lofi", description= "Pone lofi (del canal de lofi girl) en el canal que estes!")
 async def lofi(interaction: discord.Interaction):
@@ -171,7 +183,7 @@ async def lofi(interaction: discord.Interaction):
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         song_info = ydl.extract_info("https://www.youtube.com/watch?v=jfKfPfyJRdk", download=False)
     OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-    vc.play(discord.FFmpegOpusAudio(executable=EXE, source=song_info['url'], **OP), after=lambda e: playback(interaction))
+    vc.play(discord.FFmpegOpusAudio(executable=EXE, source=song_info['url'], **OP), after=lambda e: asyncio.run(playback(interaction)))
     msg = discord.Embed(title="💖Lofi💖", description="Se esta reproduciendo lofi", color=0xe91e63)
     await interaction.response.send_message(embed=msg)
 
@@ -203,40 +215,28 @@ async def fruits_autocomplete(
         for fruit in fruits if current.lower() in fruit.lower()
     ]
 
-def playback(interaction: discord.Interaction):
-    global lista, skip
-    if skip == False:
-        print(lista)
-        try:
-            lista.pop(0)
-        except Exception:
-            return
-        if lista:
-            cancion = lista[0]
-            if "https:" in cancion:
-                info = pytube.YouTube(cancion)
-            else:
-                s = Search(cancion)
-                s = s.results[0]
-                info = pytube.YouTube(f"https://youtu.be/{str(s)[41:-1]}")
-                cancion = f"https://youtu.be/{str(s)[41:-1]}"
-            if info.title == None:
-                info.title = ""
-            #asyncio.run_coroutine_threadsafe(interaction.channel.send(embed=msg, view=view), asyncio.get_event_loop())
-            ydl_opts = {
-            'format': 'bestaudio/best',
-            'noplaylist':'True',
-            'outtmpl': 'song.%(ext)s',
-            'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '192',
-            }]}
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                song_info = ydl.extract_info(lista[0], download=False)
-
-            OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-            vc.play(discord.FFmpegOpusAudio(executable=EXE, source=song_info['url'], **OP), after=lambda e: playback(interaction))
+async def playback(interaction: discord.Interaction):
+    global queue, vc
+    #this function plays the next song in the queue
+    if len(queue[interaction.guild_id]) == 0:
+        await vc.disconnect()
+        vc = ""
+        return
+    ydl_opts = {
+    'format': 'bestaudio/best',
+    'noplaylist':'True',
+    'outtmpl': 'song.%(ext)s',
+    'postprocessors': [{
+    'key': 'FFmpegExtractAudio',
+    'preferredcodec': 'mp3',
+    'preferredquality': '192',
+    }]}
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        song_info = ydl.extract_info(queue[interaction.guild_id][0], download=False)
+    OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
+    vc.play(discord.FFmpegOpusAudio(executable=EXE, source=song_info['url'], **OP), after=lambda e: asyncio.run(playback(interaction)))
+    queue[interaction.guild_id].pop(0)
+    
 
 @tree.command(name = "set-fc", description= "Pon los gamertags que quieras de la lista!")
 @app_commands.describe(n3ds="Pon tu codigo de amigo de 3ds. Ejemplo: 4141-9637-9341")

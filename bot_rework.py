@@ -18,18 +18,25 @@ from pytube import Search
 import typing
 import pickle
 from pathlib import Path
+from poke_env.player import Player, RandomPlayer
+from multiprocessing import Process,Queue,Pipe
 
 
+habilidades = []
+interactio = ""
+moves = ""
+s = ""
+FORMAT = "utf-8"
 my_file = Path("db.a")
 if my_file.is_file():
     tags = pickle.load(open('db.a', 'rb'))
 else:
     tags = {}
 
-
 skip = False
 vc = ""
 queue = {}
+titles = []
 EXE = "/usr/bin/ffmpeg"
 intents = discord.Intents.all()
 intents.members = True  
@@ -41,7 +48,7 @@ class reproductor(discord.ui.View):
     @discord.ui.button(label="Desconectar", style=discord.ButtonStyle.danger)
     async def desconectar(self, interaction: discord.Interaction, button: discord.ui.Button):
         try:
-            del lista
+            del queue[interaction.guild_id]
         except Exception:
             pass
         lista = []
@@ -66,23 +73,36 @@ class reproductor(discord.ui.View):
             vc.stop()
             await interaction.response.send_message("Saltando...", ephemeral=True)
         else:
-            await interaction.response.send_message("No hay cancion a la que skipear")
+            await interaction.response.send_message("No hay cancion a la que skipear", ephemeral=True)
             return
     @discord.ui.button(label="Lista", style=discord.ButtonStyle.blurple)
     async def lista(self, interaction: discord.Interaction, button: discord.ui.Button):
+        global titles
         if queue[interaction.guild_id] == []:
             await interaction.response.send_message("No hay nada en la cola", ephemeral=True)
             return
         msg = discord.Embed(title="Cola", description="Estas son las canciones que hay en la cola", color=interaction.user.color)
         msg.set_author(name= interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
+        def extract_song_info(queue_item):
+            global titles
+            with yt_dlp.YoutubeDL() as ydl:
+                song_info = ydl.extract_info(queue_item, download=False)
+            title = song_info.get('title', '')
+            titles.append(title)
+        
+        threads = []
         for i in range(len(queue[interaction.guild_id])):
-            while True:
-                try:
-                    info = pytube.YouTube(queue[interaction.guild_id][i])
-                    break
-                except pytube.exceptions.PytubeError:
-                    pass
-            msg.add_field(name=f"{i+1}. {info.title}", value="", inline=False)
+            thread = threading.Thread(target=extract_song_info, args=(queue[interaction.guild_id][i],))
+            threads.append(thread)
+            thread.start()
+        
+        for thread in threads:
+            thread.join()
+            
+        for i in range(len(queue[interaction.guild_id])):
+            title = titles[i]
+            msg.add_field(name=f"{i+1}. {title}", value="", inline=False)
+        
         await interaction.response.send_message(embed=msg, ephemeral=True)
 
 
@@ -98,68 +118,60 @@ async def on_ready():
 async def play(interaction: discord.Interaction, cancion: str):
     global vc, queue, EXE, skip
     buff = []
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'outtmpl': 'song.%(ext)s',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+        'quiet': True,
+        'no_warnings': True,
+        'default_search': 'auto',
+    }
     if "https:" in cancion:
         if "list" in cancion:
             playlist = pytube.Playlist(cancion)
             for url in playlist.video_urls:
                 buff.append(url)
-            #repeat pytube.YouTube until it works
-            while True:
-                try:
-                    info = pytube.YouTube(playlist.video_urls[0])
-                    break
-                except pytube.exceptions.PytubeError:
-                    pass
-            print(buff)
+            info = yt_dlp.YoutubeDL(ydl_opts).extract_info(buff[0], download=False)
         else:
-            #repeat pytube.YouTube until it works
-            while True:
-                try:
-                    info = pytube.YouTube(cancion)
-                    break
-                except pytube.exceptions.PytubeError:
-                    pass
-            buff.append(cancion)        
+            info = yt_dlp.YoutubeDL(ydl_opts).extract_info(cancion, download=False)
+            buff.append(cancion)
     else:
         s = Search(cancion)
         s = s.results[0]
-        info = pytube.YouTube(f"https://youtu.be/{str(s)[41:-1]}")
+        info = yt_dlp.YoutubeDL(ydl_opts).extract_info(f"https://youtu.be/{str(s)[41:-1]}", download=False)
         cancion = f"https://youtu.be/{str(s)[41:-1]}"
         buff.append(cancion)
-    if info.title == None:
-        info.title = ""
-    
+    thumbnail_url = info.get('thumbnail', '')
+    if not thumbnail_url:
+        thumbnail_url = 'https://i.ytimg.com/vi/{}/maxresdefault.jpg'.format(info.get('id', ''))
     if type(vc) == str and interaction.user.voice != None:
         vc = await interaction.user.voice.channel.connect()
     if vc.is_playing() == True:
-        msg = discord.Embed(title="Añadido a la cola", description=f"{info.title} ha sido añadido a la cola", color=interaction.user.color)
-        msg.set_thumbnail(url=info.thumbnail_url)
+        msg = discord.Embed(title="Añadido a la cola", description=f"{info.get('title', '')} ha sido añadido a la cola", color=interaction.user.color)
+        msg.set_thumbnail(url=thumbnail_url)
         msg.set_author(name= interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
         await interaction.response.send_message(embed=msg)
         queue[interaction.guild_id].extend(buff)
         return
-    if interaction.guild_id not in queue:
+    if interaction.guild_id not in queue.keys():
         queue[interaction.guild_id] = []
     queue[interaction.guild_id].extend(buff)
-    view = reproductor()
-    msg = discord.Embed(title= f"{info.title}", description= f"Se esta reproduciendo {info.title}", url=queue[interaction.guild_id][0], color=interaction.user.color)
-    msg.set_thumbnail(url=info.thumbnail_url)
+    view = reproductor(timeout=None)
+    msg = discord.Embed(title= f"{info.get('title', '')}", description= f"Se esta reproduciendo {info.get('title', '')}", url=queue[interaction.guild_id][0], color=interaction.user.color)
+    msg.set_thumbnail(url=thumbnail_url)
     msg.set_author(name= interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
     await interaction.response.send_message(embed=msg, view=view)
-    ydl_opts = {
-    'format': 'bestaudio/best',
-    'noplaylist':'True',
-    'outtmpl': 'song.%(ext)s',
-    'postprocessors': [{
-    'key': 'FFmpegExtractAudio',
-    'preferredcodec': 'mp3',
-    'preferredquality': '192',
-    }]}
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         song_info = ydl.extract_info(queue[interaction.guild_id][0], download=False)
     OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-    vc.play(discord.FFmpegOpusAudio(executable=EXE, source=song_info['url'], **OP), after=lambda e: asyncio.run(playback(interaction)))
+    vc.play(discord.FFmpegOpusAudio(executable=EXE, source=song_info['url'], **OP), after=lambda e: playback(interaction))
     queue[interaction.guild_id].pop(0)
+   
+
 
 @tree.command(name ="lofi", description= "Pone lofi (del canal de lofi girl) en el canal que estes!")
 async def lofi(interaction: discord.Interaction):
@@ -183,7 +195,7 @@ async def lofi(interaction: discord.Interaction):
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         song_info = ydl.extract_info("https://www.youtube.com/watch?v=jfKfPfyJRdk", download=False)
     OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-    vc.play(discord.FFmpegOpusAudio(executable=EXE, source=song_info['url'], **OP), after=lambda e: asyncio.run(playback(interaction)))
+    vc.play(discord.FFmpegOpusAudio(executable=EXE, source=song_info['url'], **OP), after=lambda e: playback(interaction))
     msg = discord.Embed(title="💖Lofi💖", description="Se esta reproduciendo lofi", color=0xe91e63)
     await interaction.response.send_message(embed=msg)
 
@@ -215,13 +227,9 @@ async def fruits_autocomplete(
         for fruit in fruits if current.lower() in fruit.lower()
     ]
 
-async def playback(interaction: discord.Interaction):
+def playback(interaction: discord.Interaction):
     global queue, vc
-    #this function plays the next song in the queue
-    if len(queue[interaction.guild_id]) == 0:
-        await vc.disconnect()
-        vc = ""
-        return
+    print(len(queue[interaction.guild_id]))
     ydl_opts = {
     'format': 'bestaudio/best',
     'noplaylist':'True',

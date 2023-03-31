@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import asyncio
 import discord
+from discord import Color
 from discord.utils import get
 from discord.ext import commands
 from discord import FFmpegOpusAudio
@@ -26,6 +27,7 @@ habilidades = []
 interactio = ""
 moves = ""
 s = ""
+playing = ""
 FORMAT = "utf-8"
 my_file = Path("db.a")
 if my_file.is_file():
@@ -44,66 +46,109 @@ intents.message_content = True
 bot = discord.Client(intents=intents)
 tree = app_commands.CommandTree(bot)
 
-class reproductor(discord.ui.View):
-    @discord.ui.button(label="Desconectar", style=discord.ButtonStyle.danger)
-    async def desconectar(self, interaction: discord.Interaction, button: discord.ui.Button):
-        try:
-            del queue[interaction.guild_id]
-        except Exception:
-            pass
-        lista = []
-        await vc.disconnect()
-        await interaction.response.send_message("Desconectado", ephemeral=True)
 
-    @discord.ui.button(label="Stop/Resume", style=discord.ButtonStyle.blurple)
-    async def parar(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if vc.is_playing() == False:
-            vc.resume()
-            button.label = "Stop"
-            self.parar = False
-            await interaction.response.send_message("Vuelto a poner", ephemeral=True)
-        else:
-            vc.pause()
-            button.label = "Play"
-            self.parar = True
-            await interaction.response.send_message("Pausado", ephemeral=True)
-    @discord.ui.button(label="Skip", style=discord.ButtonStyle.blurple)
-    async def skip(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if queue[interaction.guild_id] != []:
-            vc.stop()
-            await interaction.response.send_message("Saltando...", ephemeral=True)
-        else:
-            await interaction.response.send_message("No hay cancion a la que skipear", ephemeral=True)
-            return
-    @discord.ui.button(label="Lista", style=discord.ButtonStyle.blurple)
-    async def lista(self, interaction: discord.Interaction, button: discord.ui.Button):
-        global titles
-        if queue[interaction.guild_id] == []:
-            await interaction.response.send_message("No hay nada en la cola", ephemeral=True)
-            return
-        msg = discord.Embed(title="Cola", description="Estas son las canciones que hay en la cola", color=interaction.user.color)
+
+async def desconect(interaction: discord.Interaction):
+    try:
+        del queue[interaction.guild_id]
+    except Exception:
+        pass
+    queue[interaction.guild_id] = []
+    await vc.disconnect()
+    vc = ""
+    await interaction.response.send_message("Desconectado", ephemeral=True)
+
+
+async def para(interaction: discord.Interaction):
+    global playing
+    info = playing
+    if vc.is_playing() != False:
+        vc.pause()
+        thumbnail_url = info.get('thumbnail', '')
+        if not thumbnail_url:
+            thumbnail_url = 'https://i.ytimg.com/vi/{}/maxresdefault.jpg'.format(info.get('id', ''))
+        msg = discord.Embed(title= f"Pausado {info.get('title', '')}", description= f"Se ha pausado {playing.get('title', '')} pulsa reproducir para seguir reproduciendo la cancion", url=info.get("url", ""), color=Color.red())
+        msg.set_thumbnail(url=thumbnail_url)
         msg.set_author(name= interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
-        def extract_song_info(queue_item):
-            global titles
-            with yt_dlp.YoutubeDL() as ydl:
-                song_info = ydl.extract_info(queue_item, download=False)
-            title = song_info.get('title', '')
-            titles.append(title)
+        view = discord.ui.View(timeout=None)
+        desconectar = discord.ui.Button(label="Desconectar", style=discord.ButtonStyle.danger)
+        parar = discord.ui.Button(label="Reproducir", style=discord.ButtonStyle.blurple)
+        try:
+            a = queue[interaction.guild_id][0]
+            skip = discord.ui.Button(label="Skip", style=discord.ButtonStyle.blurple)
+        except IndexError:
+            skip = discord.ui.Button(label="Skip", style=discord.ButtonStyle.gray)
+        lista = discord.ui.Button(label="Lista", style=discord.ButtonStyle.blurple)
+        desconectar.callback = desconect
+        parar.callback = para
+        skip.callback = skipp
+        lista.callback = listaa
+        view.add_item(desconectar)
+        view.add_item(parar)
+        view.add_item(skip)
+        view.add_item(lista)
+    else:
+        vc.resume()
+        thumbnail_url = info.get('thumbnail', '')
+        if not thumbnail_url:
+            thumbnail_url = 'https://i.ytimg.com/vi/{}/maxresdefault.jpg'.format(info.get('id', ''))
+        msg = discord.Embed(title= f"{info.get('title', '')}", description= f"Se esta reproduciendo {info.get('title', '')}", url=info.get("url", ""), color=interaction.user.color)
+        msg.set_thumbnail(url=thumbnail_url)
+        msg.set_author(name= interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
+        view = discord.ui.View(timeout=None)
+        desconectar = discord.ui.Button(label="Desconectar", style=discord.ButtonStyle.danger)
+        parar = discord.ui.Button(label="Stop", style=discord.ButtonStyle.blurple)
+        try:
+            a = queue[interaction.guild_id][0]
+            skip = discord.ui.Button(label="Skip", style=discord.ButtonStyle.blurple)
+        except IndexError:
+            skip = discord.ui.Button(label="Skip", style=discord.ButtonStyle.gray)
+        lista = discord.ui.Button(label="Lista", style=discord.ButtonStyle.blurple)
+        desconectar.callback = desconect
+        parar.callback = para
+        skip.callback = skipp
+        lista.callback = listaa
+        view.add_item(desconectar)
+        view.add_item(parar)
+        view.add_item(skip)
+        view.add_item(lista)
+    await interaction.response.edit_message(embed=msg, view=view)
+async def skipp(interaction: discord.Interaction):
+    if queue[interaction.guild_id] != []:
+        vc.stop()
+        await interaction.response.send_message("Saltando...", ephemeral=True)
+    else:
+        await interaction.response.send_message("No hay cancion a la que skipear", ephemeral=True)
+        return
+async def listaa(interaction: discord.Interaction):
+    global titles
+    if queue[interaction.guild_id] == []:
+        await interaction.response.send_message("No hay nada en la cola", ephemeral=True)
+        return
+    msg = discord.Embed(title="Cola", description="Estas son las canciones que hay en la cola", color=interaction.user.color)
+    msg.set_author(name= interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
+    await interaction.response.defer()
+    def extract_song_info(queue_item):
+        global titles
+        with yt_dlp.YoutubeDL() as ydl:
+            song_info = ydl.extract_info(queue_item, download=False)
+        title = song_info.get('title', '')
+        titles.append(title)
+    
+    threads = []
+    for i in range(len(queue[interaction.guild_id])):
+        thread = threading.Thread(target=extract_song_info, args=(queue[interaction.guild_id][i],))
+        threads.append(thread)
+        thread.start()
+    
+    for thread in threads:
+        thread.join()
         
-        threads = []
-        for i in range(len(queue[interaction.guild_id])):
-            thread = threading.Thread(target=extract_song_info, args=(queue[interaction.guild_id][i],))
-            threads.append(thread)
-            thread.start()
-        
-        for thread in threads:
-            thread.join()
-            
-        for i in range(len(queue[interaction.guild_id])):
-            title = titles[i]
-            msg.add_field(name=f"{i+1}. {title}", value="", inline=False)
-        
-        await interaction.response.send_message(embed=msg, ephemeral=True)
+    for i in range(len(queue[interaction.guild_id])):
+        title = titles[i]
+        msg.add_field(name=f"{i+1}. {title}", value="", inline=False)
+    
+    await interaction.followup.send(embed=msg, ephemeral=True)
 
 
 
@@ -116,7 +161,7 @@ async def on_ready():
 @tree.command(name = "play", description= "Pon el nombre o el link de youtube de la cancion que quieras")
 @app_commands.describe(cancion="Pon el nombre o el link de la cancion que deseas poner, te autocompleta si lo deseas!")
 async def play(interaction: discord.Interaction, cancion: str):
-    global vc, queue, EXE, skip
+    global vc, queue, EXE, skip, playing, interactio
     buff = []
     ydl_opts = {
         'format': 'bestaudio/best',
@@ -130,6 +175,7 @@ async def play(interaction: discord.Interaction, cancion: str):
         'no_warnings': True,
         'default_search': 'auto',
     }
+    await interaction.response.defer()
     if "https:" in cancion:
         if "list" in cancion:
             playlist = pytube.Playlist(cancion)
@@ -154,23 +200,61 @@ async def play(interaction: discord.Interaction, cancion: str):
         msg = discord.Embed(title="Añadido a la cola", description=f"{info.get('title', '')} ha sido añadido a la cola", color=interaction.user.color)
         msg.set_thumbnail(url=thumbnail_url)
         msg.set_author(name= interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
-        await interaction.response.send_message(embed=msg)
+        await interaction.followup.send(embed=msg)
+        info = playing
         queue[interaction.guild_id].extend(buff)
+        thumbnail_url = info.get('thumbnail', '')
+        if not thumbnail_url:
+            thumbnail_url = 'https://i.ytimg.com/vi/{}/maxresdefault.jpg'.format(info.get('id', ''))
+        msg = discord.Embed(title= f"{info.get('title', '')}", description= f"Se esta reproduciendo {info.get('title', '')}", url=info.get("url", ""), color=interaction.user.color)
+        msg.set_thumbnail(url=thumbnail_url)
+        msg.set_author(name= interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
+        view = discord.ui.View(timeout=None)
+        desconectar = discord.ui.Button(label="Desconectar", style=discord.ButtonStyle.danger)
+        parar = discord.ui.Button(label="Stop", style=discord.ButtonStyle.blurple)
+        skip = discord.ui.Button(label="Skip", style=discord.ButtonStyle.blurple)
+        lista = discord.ui.Button(label="Lista", style=discord.ButtonStyle.blurple)
+        desconectar.callback = desconect
+        parar.callback = para
+        skip.callback = skipp
+        lista.callback = listaa
+        view.add_item(desconectar)
+        view.add_item(parar)
+        view.add_item(skip)
+        view.add_item(lista)
+        await interactio.edit_original_response(embed=msg, view=view)
         return
     if interaction.guild_id not in queue.keys():
         queue[interaction.guild_id] = []
     queue[interaction.guild_id].extend(buff)
-    view = reproductor(timeout=None)
+    view = discord.ui.View(timeout=None)
+    desconectar = discord.ui.Button(label="Desconectar", style=discord.ButtonStyle.danger)
+    parar = discord.ui.Button(label="Stop", style=discord.ButtonStyle.blurple)
+    try:
+        a = queue[interaction.guild_id][1]
+        skip = discord.ui.Button(label="Skip", style=discord.ButtonStyle.blurple)
+    except IndexError:
+        skip = discord.ui.Button(label="Skip", style=discord.ButtonStyle.gray)
+    lista = discord.ui.Button(label="Lista", style=discord.ButtonStyle.blurple)
+    desconectar.callback = desconect
+    parar.callback = para
+    skip.callback = skipp
+    lista.callback = listaa
+    view.add_item(desconectar)
+    view.add_item(parar)
+    view.add_item(skip)
+    view.add_item(lista)
     msg = discord.Embed(title= f"{info.get('title', '')}", description= f"Se esta reproduciendo {info.get('title', '')}", url=queue[interaction.guild_id][0], color=interaction.user.color)
     msg.set_thumbnail(url=thumbnail_url)
     msg.set_author(name= interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
-    await interaction.response.send_message(embed=msg, view=view)
+    await interaction.followup.send(embed=msg, view=view)
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         song_info = ydl.extract_info(queue[interaction.guild_id][0], download=False)
     OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-    vc.play(discord.FFmpegOpusAudio(executable=EXE, source=song_info['url'], **OP), after=lambda e: playback(interaction))
+    vc.play(discord.FFmpegOpusAudio(executable=EXE, source=song_info['url'], **OP), after=lambda e: asyncio.run(playback(interaction)))
+    playing = yt_dlp.YoutubeDL(ydl_opts).extract_info(buff[0], download=False)
+    interactio = interaction
     queue[interaction.guild_id].pop(0)
-   
 
 
 @tree.command(name ="lofi", description= "Pone lofi (del canal de lofi girl) en el canal que estes!")
@@ -195,7 +279,7 @@ async def lofi(interaction: discord.Interaction):
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         song_info = ydl.extract_info("https://www.youtube.com/watch?v=jfKfPfyJRdk", download=False)
     OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-    vc.play(discord.FFmpegOpusAudio(executable=EXE, source=song_info['url'], **OP), after=lambda e: playback(interaction))
+    vc.play(discord.FFmpegOpusAudio(executable=EXE, source=song_info['url'], **OP), after=lambda e: asyncio.run(playback(interaction)))
     msg = discord.Embed(title="💖Lofi💖", description="Se esta reproduciendo lofi", color=0xe91e63)
     await interaction.response.send_message(embed=msg)
 
@@ -227,8 +311,8 @@ async def fruits_autocomplete(
         for fruit in fruits if current.lower() in fruit.lower()
     ]
 
-def playback(interaction: discord.Interaction):
-    global queue, vc
+async def playback(interaction: discord.Interaction):
+    global queue, vc, playing
     print(len(queue[interaction.guild_id]))
     ydl_opts = {
     'format': 'bestaudio/best',
@@ -244,7 +328,33 @@ def playback(interaction: discord.Interaction):
     OP = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
     vc.play(discord.FFmpegOpusAudio(executable=EXE, source=song_info['url'], **OP), after=lambda e: asyncio.run(playback(interaction)))
     queue[interaction.guild_id].pop(0)
-    
+    info = song_info
+    thumbnail_url = info.get('thumbnail', '')
+    if not thumbnail_url:
+        thumbnail_url = 'https://i.ytimg.com/vi/{}/maxresdefault.jpg'.format(info.get('id', ''))
+    msg = discord.Embed(title= f"{info.get('title', '')}", description= f"Se esta reproduciendo {info.get('title', '')}", url=info.get("url", ""), color=interaction.user.color)
+    msg.set_thumbnail(url=thumbnail_url)
+    msg.set_author(name= interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
+    view = discord.ui.View(timeout=None)
+    desconectar = discord.ui.Button(label="Desconectar", style=discord.ButtonStyle.danger)
+    parar = discord.ui.Button(label="Stop", style=discord.ButtonStyle.blurple)
+    try:
+        a = queue[interaction.guild_id][0]
+        skip = discord.ui.Button(label="Skip", style=discord.ButtonStyle.blurple)
+    except IndexError:
+        skip = discord.ui.Button(label="Skip", style=discord.ButtonStyle.gray)
+    lista = discord.ui.Button(label="Lista", style=discord.ButtonStyle.blurple)
+    desconectar.callback = desconect
+    parar.callback = para
+    skip.callback = skipp
+    lista.callback = listaa
+    view.add_item(desconectar)
+    view.add_item(parar)
+    view.add_item(skip)
+    view.add_item(lista)
+    send_fut = asyncio.run_coroutine_threadsafe(interaction.edit_original_response(embed=msg, view=view), bot.loop)
+    send_fut.result()
+    playing = song_info
 
 @tree.command(name = "set-fc", description= "Pon los gamertags que quieras de la lista!")
 @app_commands.describe(n3ds="Pon tu codigo de amigo de 3ds. Ejemplo: 4141-9637-9341")

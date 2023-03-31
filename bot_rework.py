@@ -223,6 +223,8 @@ async def play(interaction: discord.Interaction, cancion: str):
         view.add_item(skip)
         view.add_item(lista)
         await interactio.edit_original_response(embed=msg, view=view)
+        await asyncio.sleep(10)
+        await interaction.delete_original_response()
         return
     if interaction.guild_id not in queue.keys():
         queue[interaction.guild_id] = []

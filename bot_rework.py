@@ -341,7 +341,7 @@ async def playback(interaction: discord.Interaction):
     desconectar = discord.ui.Button(label="Desconectar", style=discord.ButtonStyle.danger)
     parar = discord.ui.Button(label="Stop", style=discord.ButtonStyle.blurple)
     try:
-        a = queue[interaction.guild_id][0]
+        a = queue[interaction.guild_id][1]
         skip = discord.ui.Button(label="Skip", style=discord.ButtonStyle.blurple)
     except IndexError:
         skip = discord.ui.Button(label="Skip", style=discord.ButtonStyle.gray)

@@ -6,3 +6,4 @@ requests
 pytest
 tinytag
 spotipy
+aiohttp>=3.8.5 # not directly required, pinned by Snyk to avoid a vulnerability
